@@ -130,7 +130,7 @@ def createSamples():
     posCount = pathCount('data/pos')
     createSamples = f'../opencv/opencv_createsamples.exe -vec ./data/output.vec -info ./data/info.dat -bg ./data/bg.txt -num {posCount} -w 60 -h 40'
     program = subprocess.Popen(shlex.split(createSamples),stdout=subprocess.PIPE)
-    print(program.stdout.read())
+    print(program.stdout.read().decode())
     program.wait()
     print('Vector files created')
 
@@ -142,7 +142,7 @@ def trainCascade():
     os.chdir('data')
     trainCascade = f'../../opencv/opencv_traincascade.exe -data ./ -vec ./output.vec -bg ./bg.txt -numPos {posCount} -numNeg {negCount} -numStages 20 -precalcValBufSize 2048 -precalcIdxBufSize 2048 -minHitRate 0.999 -maxFalseAlarmRate 0.5 -mode ALL -featureType LBP -w 60 -h 40'
     program2 = subprocess.Popen(shlex.split(trainCascade),stdout=subprocess.PIPE)
-    print(program.stdout.read())
+    print(program2.stdout.read())
     program2.wait()
     os.chdir(tempPath)
     print('Finished Training')
