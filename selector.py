@@ -96,6 +96,7 @@ def areaSelector(refFrame):
             break
         
         elif(key == ord("q") or cv2.getWindowImageRect(selectWindow)[0] < 0):
+            mask = (-31,)
             break
     cv2.destroyWindow(selectWindow)
     return mask
