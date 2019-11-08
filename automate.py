@@ -7,13 +7,15 @@ Created on Tue Nov  5 10:38:16 2019
 import cv2,glob,os,subprocess,shlex,shutil
 from selector import areaSelector, mask2Rect
 
+pathCount = lambda path: len([f for f in os.listdir(path)if os.path.isfile(os.path.join(path, f))])
+
 def main():
-    video_location = '../vids/18_October_2019.mp4'
+    video_location = '../vids/usps.mp4'
     #makeDirs()
     #posCount,negCount = selectPosNeg(video_location)
-    #createSamples(posCount,negCount)
-    #trainCascade(posCount,negCount)
-    playVids(video_location)
+    createSamples()
+    #trainCascade()
+    #playVids(video_location)
 
 def picList(picPath):
     imgList = []
@@ -123,21 +125,24 @@ def selectPosNeg(video_location):
     print('Number of Positive pics: '+str(posCount))
     return posCount, negCount
     
-def createSamples(posCount,negCount):
+def createSamples():
     print('Beginning vec file creation')
+    posCount = pathCount('data/pos')
     createSamples = f'../opencv/opencv_createsamples.exe -vec ./data/output.vec -info ./data/info.dat -bg ./data/bg.txt -num {posCount} -w 60 -h 40'
     program = subprocess.Popen(shlex.split(createSamples),stdout=subprocess.PIPE)
-    program.communicate()[0]
+    print(program.stdout.read())
     program.wait()
     print('Vector files created')
 
-def trainCascade(posCount,negCount):
+def trainCascade():
     print('Cascade training has started, this might take awhile...')
+    posCount = pathCount('data/pos')
+    negCount = pathCount('data/neg')
     tempPath = os.getcwd()
     os.chdir('data')
     trainCascade = f'../../opencv/opencv_traincascade.exe -data ./ -vec ./output.vec -bg ./bg.txt -numPos {posCount} -numNeg {negCount} -numStages 20 -precalcValBufSize 2048 -precalcIdxBufSize 2048 -minHitRate 0.999 -maxFalseAlarmRate 0.5 -mode ALL -featureType LBP -w 60 -h 40'
     program2 = subprocess.Popen(shlex.split(trainCascade),stdout=subprocess.PIPE)
-    program2.communicate()[0]
+    print(program.stdout.read())
     program2.wait()
     os.chdir(tempPath)
     print('Finished Training')
