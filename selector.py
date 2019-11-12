@@ -36,6 +36,11 @@ def box2Rect(bbox):
     h = int(bbox[3])
     return ((x1,y1), (x1+w,y1+h))
 
+def box2Mask(bbox):
+    pts = box2Rect(bbox)
+    mask = (slice(pts[0][1],pts[1][1]),slice(pts[0][0],pts[1][0]))
+    return mask
+
 def areaSelector(refFrame):
     selectWindow = "Select Region"
     cv2.namedWindow(selectWindow)

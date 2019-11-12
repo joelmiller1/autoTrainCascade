@@ -5,7 +5,7 @@ Created on Tue Nov  5 10:38:16 2019
 @author: Joel Miller
 """
 import cv2,glob,os,subprocess,shlex,shutil
-from selector import areaSelector, mask2Rect
+from selector import areaSelector, mask2Rect, box2Mask, box2Rect, mask2Box
 
 pathCount = lambda path: len([f for f in os.listdir(path)if os.path.isfile(os.path.join(path, f))])
 
@@ -27,6 +27,52 @@ def picList(picPath):
     count = len(imgList)
     return count, imgList
 
+def objTrack(videoLocation):
+    cap = cv2.VideoCapture(videoLocation)
+    success, refFrame = cap.read()
+    box = mask2Box(areaSelector(refFrame))
+    tracker = cv2.TrackerMedianFlow_create()
+    tracker.init(refFrame,box)
+    posCount = 0
+    negCount = 0
+    makeDirs()
+    bgFile = open('data/bg.txt','w+')
+    datFile = open('data/info.dat','w+')
+    
+    while True:
+        success,frame = cap.read()
+        refFrame = frame.copy()
+        if not success:
+            break
+        success, box = tracker.update(frame)
+        success, box = tracker.update(refFrame)
+        
+        if success:
+            rectPts = box2Rect(box)
+            cv2.rectangle(frame,rectPts[0],rectPts[1],(255,0,0),2,1)
+            mask = box2Mask(box)
+            posCount += 1
+            cv2.imwrite(f'data/pos/pos{posCount}.jpg',refFrame[mask])
+            datFile.write(f'pos/pos{posCount}.jpg  1  0 0 {int(box[2])} {int(box[3])}\n')
+            refFrame = cv2.rectangle(refFrame,rectPts[0],rectPts[1],(0,0,0),cv2.FILLED)
+            negCount += 1
+            cv2.imwrite(f'data/neg/neg{negCount}.jpg',refFrame)
+            bgFile.write(f'neg/neg{negCount}.jpg\n')
+        else:
+            print("Tracking Failed")
+            break
+        
+        cv2.imshow('Tracking',frame)
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord('q'):
+            break
+    
+    bgFile.close()
+    datFile.close()
+    cap.release()
+    cv2.destroyAllWindows()
+    f'Positive Count: {posCount} Negative Count: {negCount}'
+    return posCount, negCount
 
 def bgList(vidPath):
     vidcap = cv2.VideoCapture(vidPath)
@@ -50,12 +96,7 @@ def bgList(vidPath):
         sec = sec + frameRate
         sec = round(sec, 2)
         success,image = getFrame(sec)
-        
-        """if success:
-            cv2.imshow("video",image)
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord("q"):
-            break"""
+
         if (count%50) == 0:
             print("converting images...")
     vidcap.release()
@@ -142,7 +183,7 @@ def trainCascade():
     os.chdir('data')
     trainCascade = f'../../opencv/opencv_traincascade.exe -data ./ -vec ./output.vec -bg ./bg.txt -numPos {posCount} -numNeg {negCount} -numStages 20 -precalcValBufSize 2048 -precalcIdxBufSize 2048 -minHitRate 0.999 -maxFalseAlarmRate 0.5 -mode ALL -featureType LBP -w 60 -h 40'
     program2 = subprocess.Popen(shlex.split(trainCascade),stdout=subprocess.PIPE)
-    print(program2.stdout.read())
+    print(program2.stdout.read().decode())
     program2.wait()
     os.chdir(tempPath)
     print('Finished Training')
@@ -162,8 +203,6 @@ def playVids(video_location):
         usps = usps_cascade.detectMultiScale(gray, 1.3, 5)
         for (x,y,w,h) in usps:
             cv2.rectangle(frame,(x,y),(x+w,y+h),(0,255,255),2)
-            roi_gray = gray[y:y+h, x:x+w]
-            roi_color = frame[y:y+h, x:x+w]
     
         if success:
             cv2.imshow('Video',frame)
