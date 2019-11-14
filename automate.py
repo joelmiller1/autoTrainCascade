@@ -5,17 +5,18 @@ Created on Tue Nov  5 10:38:16 2019
 @author: Joel Miller
 """
 import cv2,glob,os,subprocess,shlex,shutil
-from selector import areaSelector, mask2Rect, box2Mask, box2Rect, mask2Box
+from selector import areaSelector, mask2Rect, box2Rect, mask2Box, box2Mask
 
 pathCount = lambda path: len([f for f in os.listdir(path)if os.path.isfile(os.path.join(path, f))])
 
 def main():
-    video_location = '../vids/usps.mp4'
+    video_location = '../vids/f35-1.mp4'
     #makeDirs()
     #posCount,negCount = selectPosNeg(video_location)
-    createSamples()
+    #objTrack(video_location)
+    #createSamples()
     #trainCascade()
-    #playVids(video_location)
+    playVids(video_location)
 
 def picList(picPath):
     imgList = []
@@ -27,8 +28,24 @@ def picList(picPath):
     count = len(imgList)
     return count, imgList
 
+def makeDirs():
+    try:
+        file.close()
+        file2.close()
+    except:
+        print("Creating Directory")
+    if os.path.isdir('data') == False:
+        os.mkdir('data')
+    else:
+        shutil.rmtree('data')            
+    if os.path.isdir('data/pos') == False:
+        os.mkdir('data/pos')
+    if os.path.isdir('data/neg') == False:
+        os.mkdir('data/neg')
+
 def objTrack(videoLocation):
     cap = cv2.VideoCapture(videoLocation)
+    cap.set(cv2.CAP_PROP_POS_MSEC,2*1000)
     success, refFrame = cap.read()
     box = mask2Box(areaSelector(refFrame))
     tracker = cv2.TrackerMedianFlow_create()
@@ -59,8 +76,9 @@ def objTrack(videoLocation):
             cv2.imwrite(f'data/neg/neg{negCount}.jpg',refFrame)
             bgFile.write(f'neg/neg{negCount}.jpg\n')
         else:
-            print("Tracking Failed")
-            break
+            box = mask2Box(areaSelector(refFrame))
+            tracker = cv2.TrackerMedianFlow_create()
+            tracker.init(refFrame,box)
         
         cv2.imshow('Tracking',frame)
         key = cv2.waitKey(1) & 0xFF
@@ -72,7 +90,6 @@ def objTrack(videoLocation):
     cap.release()
     cv2.destroyAllWindows()
     f'Positive Count: {posCount} Negative Count: {negCount}'
-    return posCount, negCount
 
 def bgList(vidPath):
     vidcap = cv2.VideoCapture(vidPath)
@@ -102,21 +119,6 @@ def bgList(vidPath):
     vidcap.release()
     cv2.destroyAllWindows()
     print("Finished making pictures")
-
-def makeDirs():
-    try:
-        file.close()
-        file2.close()
-    except:
-        print("Creating Directory")
-    if os.path.isdir('data') == False:
-        os.mkdir('data')
-    else:
-        shutil.rmtree('data')            
-    if os.path.isdir('data/pos') == False:
-        os.mkdir('data/pos')
-    if os.path.isdir('data/neg') == False:
-        os.mkdir('data/neg')
         
 def selectPosNeg(video_location):
     bgList(video_location)
