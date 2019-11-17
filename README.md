@@ -1,5 +1,11 @@
 # objectDetect
-How to train and create your own Cascade Classifier. Most of this info is located at https://docs.opencv.org/3.4/dc/d88/tutorial_traincascade.html
+## Motivation and Background 
+The purpose of this python project is to take most of the work out of training so you can use the standard opencv object tracking
+examples to track your own custom object. The problem with the whole training process is that it is tedious and the end result may
+not work. I created this in order to try and automate some of the process.... this is still far from perfect, but it can be easily 
+modified/built upon to train faster. Changing the training parameters will help deliver better results for what you are trying to 
+achieve. More positive and negative images will produce better results. Most of the documentation is located in the following link: 
+https://docs.opencv.org/3.4/dc/d88/tutorial_traincascade.html
 
 __Step 1__ -
 Download and install/extract files from https://github.com/opencv/opencv/releases/tag/3.4.8 . If you are on windows then get the 
