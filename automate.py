@@ -10,12 +10,12 @@ from selector import areaSelector, mask2Rect, box2Rect, mask2Box, box2Mask
 pathCount = lambda path: len([f for f in os.listdir(path)if os.path.isfile(os.path.join(path, f))])
 
 def main():
-    video_location = '../vids/f35-1.mp4'
+    video_location = '../vids/f35-2.mp4'
     #makeDirs()
     #posCount,negCount = selectPosNeg(video_location)
-    #objTrack(video_location)
-    #createSamples()
-    #trainCascade()
+    objTrack(video_location)
+    createSamples()
+    trainCascade()
     playVids(video_location)
 
 def picList(picPath):
@@ -45,7 +45,7 @@ def makeDirs():
 
 def objTrack(videoLocation):
     cap = cv2.VideoCapture(videoLocation)
-    cap.set(cv2.CAP_PROP_POS_MSEC,2*1000)
+    cap.set(cv2.CAP_PROP_POS_MSEC,90*1000)
     success, refFrame = cap.read()
     box = mask2Box(areaSelector(refFrame))
     tracker = cv2.TrackerMedianFlow_create()
@@ -105,7 +105,7 @@ def bgList(vidPath):
         return hasFrames,image
     
     sec = 2
-    frameRate = 1 #//it will capture image in each 0.5 second
+    frameRate = 5 #//it will capture image in each 0.5 second
     success,image  = getFrame(sec)
     
     while success:
