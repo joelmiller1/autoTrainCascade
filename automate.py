@@ -12,10 +12,10 @@ pathCount = lambda path: len([f for f in os.listdir(path)if os.path.isfile(os.pa
 def main():
     video_location = ['../vids/mario1.mp4',
                       '../vids/mario3.mp4']
-    #selectPosNeg(video_location)
+    selectPosNeg(video_location)
     #objTrack(video_location)
-    #createSamples()
-    #trainCascade()
+    createSamples()
+    trainCascade()
     playVids(video_location)
 
 def makeDirs():
@@ -182,7 +182,7 @@ def trainCascade():
     negCount = pathCount('data/neg')
     tempPath = os.getcwd()
     os.chdir('data')
-    trainCascade = f'../../opencv/opencv_traincascade.exe -data ./ -vec ./output.vec -bg ./bg.txt -numPos {posCount} -numNeg {negCount} -numStages 20 -precalcValBufSize 2048 -precalcIdxBufSize 2048 -minHitRate 0.999 -maxFalseAlarmRate 0.5 -mode ALL -featureType LBP -w 60 -h 40'
+    trainCascade = f'../../opencv/opencv_traincascade.exe -data ./ -vec ./output.vec -bg ./bg.txt -numPos {posCount} -numNeg {negCount} -numStages 20 -precalcValBufSize 2048 -precalcIdxBufSize 2048 -minHitRate 0.999 -maxFalseAlarmRate 0.5 -w 60 -h 40'
     program2 = subprocess.Popen(shlex.split(trainCascade),stdout=subprocess.PIPE)
     print(program2.stdout.read().decode())
     program2.wait()
