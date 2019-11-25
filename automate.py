@@ -96,8 +96,8 @@ def objTrack(videoLocation):
                     #print(box2Mask(box))
                     cv2.rectangle(frame,rectPts[0],rectPts[1],(255,0,0),2,1)
                     posCount += 1
-                    #resizedModImg = cv2.resize(objFrame,(w,h))
-                    cv2.imwrite(f'data/pos/pos{posCount}.jpg',objFrame)
+                    resizedModImg = cv2.resize(objFrame,(w,h))
+                    cv2.imwrite(f'data/pos/pos{posCount}.jpg',resizedModImg)
                     posList.append(f'pos/pos{posCount}.jpg  1  0 0 {w} {h}\n')
                     refFrame = cv2.rectangle(refFrame,rectPts[0],rectPts[1],(0,0,0),cv2.FILLED)
                     negCount += 1
