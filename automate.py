@@ -11,11 +11,11 @@ pathCount = lambda path: len([f for f in os.listdir(path)if os.path.isfile(os.pa
 
 def main():
     video_location = ['../vids/mario1.mp4']
-    width,height = selectPosNeg(video_location)
-    #objTrack(video_location)
-    trainedWidth,trainedHeight = createSamples(width,height)
-    trainCascade(trainedWidth,trainedHeight)
-    playVids(video_location)
+    #width,height = selectPosNeg(video_location)
+    objTrack(video_location)
+    #trainedWidth,trainedHeight = createSamples(width,height)
+    #trainCascade(trainedWidth,trainedHeight)
+    #playVids(video_location)
 
 def makeDirs():
     print("Creating Temporary Directories")
@@ -30,59 +30,116 @@ def makeDirs():
         os.mkdir('data/neg')
         
 def objTrack(videoLocation):
-    cap = cv2.VideoCapture(videoLocation)
-    cap.set(cv2.CAP_PROP_POS_MSEC,90*1000)
-    success, refFrame = cap.read()
-    box = mask2Box(areaSelector(refFrame))
-    tracker = cv2.TrackerMedianFlow_create()
-    tracker.init(refFrame,box)
-    posCount = 0
-    negCount = 0
     makeDirs()
-    dat = []
-    bg = []
+    cap = cv2.VideoCapture(videoLocation[0])
+    init = 1
+    class Found(Exception): pass
+    try:
+        while True:
+            success, frame = cap.read()
+            refFrame = frame.copy()
+            key = cv2.waitKey(1) & 0xFF
+            if not success:
+                print('didnt find video')
+                break
     
-    while True:
-        success,frame = cap.read()
-        refFrame = frame.copy()
-        if not success:
-            break
-        success, box = tracker.update(frame)
-        success, box = tracker.update(refFrame)
-        
-        if success:
-            rectPts = box2Rect(box)
-            cv2.rectangle(frame,rectPts[0],rectPts[1],(255,0,0),2,1)
-            mask = box2Mask(box)
-            posCount += 1
-            cv2.imwrite(f'data/pos/pos{posCount}.jpg',refFrame[mask])
-            dat.append(f'pos/pos{posCount}.jpg  1  0 0 {int(box[2])} {int(box[3])}\n')
-            refFrame = cv2.rectangle(refFrame,rectPts[0],rectPts[1],(0,0,0),cv2.FILLED)
-            negCount += 1
-            cv2.imwrite(f'data/neg/neg{negCount}.jpg',refFrame)
-            bg.append(f'neg/neg{negCount}.jpg\n')
-        else:
-            box = mask2Box(areaSelector(refFrame))
-            tracker = cv2.TrackerMedianFlow_create()
-            tracker.init(refFrame,box)
-        
-        cv2.imshow('Tracking',frame)
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord('q'):
-            break
+            # Pause the Video
+            if key == 32:
+                while True:
+                    key2 = cv2.waitKey(1) or 0xFF
+                    # Start obj tracking
+                    if key2 == ord('w'):
+                        yRatio = 1
+                        box = areaSelector(frame,yRatio,init)
+                        ratioInit = mask2Rect(box)
+                        h = ratioInit[1][1] - ratioInit[0][1]
+                        w = ratioInit[1][0] - ratioInit[0][0]
+                        yRatio = round(h/w,2)
+                        init = 2
+
+                        tracker = cv2.TrackerMedianFlow_create()
+                        tracker.init(frame,mask2Box(box))
+                        posCount = 1
+                        negCount = 1
+                        posList = []
+                        negList = []
+                
+                        objFrame = refFrame[box]
+                        w = objFrame.shape[1]
+                        h = objFrame.shape[0]
+                        cv2.imwrite(f'data/pos/pos{posCount}.jpg',objFrame)
+                        posList.append(f'pos/pos{posCount}.jpg  1  0 0 {w} {h}\n')
+                        
+                        temp = mask2Rect(box)
+                        refFrame = cv2.rectangle(refFrame,temp[0],temp[1],(0,0,0),cv2.FILLED)
+                        cv2.imwrite(f'data/neg/neg{negCount}.jpg',refFrame)
+                        negList.append(f'neg/neg{negCount}.jpg\n')
+                        break
+                        
+                    cv2.imshow('Video',frame)
+                    # Play the Video
+                    if key2 == 32:
+                        break
+                    if key2 == 27 or key2 == 113:
+                        raise Found
+
+
+            if success and init == 2:
+                trackSuccess, box = tracker.update(frame)
+                if trackSuccess:
+                    #success, box = tracker.update(frame)
+                    #print(box)
+                    #success, box = tracker.update(refFrame)
+                    rectPts = box2Rect(box)
+                    #print(rectPts)
+                    objFrame = frame[box2Mask(box)]
+                    #print(box2Mask(box))
+                    cv2.rectangle(frame,rectPts[0],rectPts[1],(255,0,0),2,1)
+                    posCount += 1
+                    #resizedModImg = cv2.resize(objFrame,(w,h))
+                    cv2.imwrite(f'data/pos/pos{posCount}.jpg',objFrame)
+                    posList.append(f'pos/pos{posCount}.jpg  1  0 0 {w} {h}\n')
+                    refFrame = cv2.rectangle(refFrame,rectPts[0],rectPts[1],(0,0,0),cv2.FILLED)
+                    negCount += 1
+                    cv2.imwrite(f'data/neg/neg{negCount}.jpg',refFrame)
+                    negList.append(f'neg/neg{negCount}.jpg\n')
+
+                        
+            # Skip forward 3 seconds
+            if key == ord('d'):
+                skip = cap.get(cv2.CAP_PROP_POS_MSEC) + 3000
+                cap.set(cv2.CAP_PROP_POS_MSEC,skip)
+                success, frame = cap.read()
+            
+            # Skip Back 3 seconds
+            if key == ord('a'):
+                skip = cap.get(cv2.CAP_PROP_POS_MSEC) - 3000
+                cap.set(cv2.CAP_PROP_POS_MSEC,skip)
+                success, frame = cap.read()
+                
+            # Quit Video Playback by pressing 'q' or ESC
+            if key == 113 or key == 27:
+                break
+
+            cv2.imshow('Video',frame)
+            
+    except Found:
+        print('done')
     
     # write out background file
     bgFile = open('data/bg.txt','w+')
-    [bgFile.write(i) for i in bg]
+    [bgFile.write(i) for i in negList]
     bgFile.close()
     # write out dat file
     datFile = open('data/info.dat','w+')
-    [datFile.write(i) for i in dat]
+    [datFile.write(i) for i in posList]
     datFile.close()
-    
+    print("Positive Count: "+str(posCount))
+    print("Negative Count: "+str(negCount))
     cap.release()
     cv2.destroyAllWindows()
-    f'Positive Count: {posCount} Negative Count: {negCount}'
+    
+
 
 def bgList(vidPath):
     if os.path.isdir('data/raw') == False:
