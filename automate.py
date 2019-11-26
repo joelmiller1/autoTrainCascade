@@ -33,15 +33,20 @@ def objTrack(videoLocation):
     makeDirs()
     cap = cv2.VideoCapture(videoLocation[0])
     init = 1
+    initScale = 1
+    posCount = 0
+    negCount = 0
+    posList = []
+    negList = []
     class Found(Exception): pass
     try:
         while True:
             success, frame = cap.read()
-            refFrame = frame.copy()
-            key = cv2.waitKey(1) & 0xFF
             if not success:
                 print('didnt find video')
                 break
+            refFrame = frame.copy()
+            key = cv2.waitKey(1) & 0xFF
     
             # Pause the Video
             if key == 32:
@@ -49,29 +54,31 @@ def objTrack(videoLocation):
                     key2 = cv2.waitKey(1) or 0xFF
                     # Start obj tracking
                     if key2 == ord('w'):
-                        yRatio = 1
-                        box = areaSelector(frame,yRatio,init)
-                        ratioInit = mask2Rect(box)
-                        h = ratioInit[1][1] - ratioInit[0][1]
-                        w = ratioInit[1][0] - ratioInit[0][0]
-                        yRatio = round(h/w,2)
+                        if initScale:
+                            yRatio = 1
+                            box = areaSelector(frame,yRatio,init)
+                            ratioInit = mask2Rect(box)
+                            h = ratioInit[1][1] - ratioInit[0][1]
+                            w = ratioInit[1][0] - ratioInit[0][0]
+                            yRatio = round(h/w,2)
+                            initScale = 0
+                            objFrame = refFrame[box]
+                            w = objFrame.shape[1]
+                            h = objFrame.shape[0]
+                        else:
+                            box = areaSelector(frame,yRatio,init)
+                            objFrame = refFrame[box]
+                            objFrame = cv2.resize(objFrame,(w,h))
+                            
                         init = 2
-
                         tracker = cv2.TrackerMedianFlow_create()
                         tracker.init(frame,mask2Box(box))
-                        posCount = 1
-                        negCount = 1
-                        posList = []
-                        negList = []
-                
-                        objFrame = refFrame[box]
-                        w = objFrame.shape[1]
-                        h = objFrame.shape[0]
+                        posCount += 1
                         cv2.imwrite(f'data/pos/pos{posCount}.jpg',objFrame)
                         posList.append(f'pos/pos{posCount}.jpg  1  0 0 {w} {h}\n')
-                        
                         temp = mask2Rect(box)
                         refFrame = cv2.rectangle(refFrame,temp[0],temp[1],(0,0,0),cv2.FILLED)
+                        negCount += 1
                         cv2.imwrite(f'data/neg/neg{negCount}.jpg',refFrame)
                         negList.append(f'neg/neg{negCount}.jpg\n')
                         break
@@ -80,6 +87,9 @@ def objTrack(videoLocation):
                     # Play the Video
                     if key2 == 32:
                         break
+                    if key2 == ord('s'):
+                        init = 1
+                        break
                     if key2 == 27 or key2 == 113:
                         raise Found
 
@@ -87,13 +97,8 @@ def objTrack(videoLocation):
             if success and init == 2:
                 trackSuccess, box = tracker.update(frame)
                 if trackSuccess:
-                    #success, box = tracker.update(frame)
-                    #print(box)
-                    #success, box = tracker.update(refFrame)
                     rectPts = box2Rect(box)
-                    #print(rectPts)
                     objFrame = frame[box2Mask(box)]
-                    #print(box2Mask(box))
                     cv2.rectangle(frame,rectPts[0],rectPts[1],(255,0,0),2,1)
                     posCount += 1
                     resizedModImg = cv2.resize(objFrame,(w,h))
@@ -103,7 +108,9 @@ def objTrack(videoLocation):
                     negCount += 1
                     cv2.imwrite(f'data/neg/neg{negCount}.jpg',refFrame)
                     negList.append(f'neg/neg{negCount}.jpg\n')
-
+            
+            if key ==ord('s'):
+                init = 1
                         
             # Skip forward 3 seconds
             if key == ord('d'):
@@ -121,10 +128,63 @@ def objTrack(videoLocation):
             if key == 113 or key == 27:
                 break
 
-            cv2.imshow('Video',frame)
+            if success:
+                cv2.imshow('Video',frame)
             
     except Found:
-        print('done')
+        print('Finished making Pictures. Now review positives and delete false positives')
+        
+    def reviewPics(posCount):
+        count = posCount
+        i = 1
+        print('image: '+str(i)+'/'+str(count))
+        while i <= count:
+            frame = cv2.imread(f'data/pos/pos{i}.jpg')
+            while True:
+                key = cv2.waitKey(1) or 0xFF
+                cv2.imshow('Video',frame)
+
+                if key == ord('a'):
+                    try:
+                        if i > 2:
+                            i -= 1
+                            frame = cv2.imread(f'data/pos/pos{i}.jpg')
+                            print('image: '+str(i)+'/'+str(count))
+                    except:
+                        break
+                
+                if key == ord('d'):
+                    try:
+                        if i < count:
+                            i += 1
+                            frame = cv2.imread(f'data/pos/pos{i}.jpg')
+                            print('image: '+str(i)+'/'+str(count))
+                            break
+                    except:
+                        break
+                    
+                if key == ord('x'):
+                    os.remove(f'data/pos/pos{i}.jpg')
+                    posList.remove(f'pos/pos{posCount}.jpg  1  0 0 {w} {h}\n')
+                    posCount -= 1
+                    i += 1
+                    frame = cv2.imread(f'data/pos/pos{i}.jpg')
+                    print('image: '+str(i)+'/'+str(count))
+                
+                if key == 113 or key == 27:
+                    i = count + 9000
+                    break
+        
+        renameList = [f for f in os.listdir('data/pos') if os.path.isfile(os.path.join('data/pos', f))] 
+        renameNum = 1
+        for j in renameList:
+            os.rename('data/pos/'+j,f'data/pos/pos{renameNum}.jpg')
+            renameNum += 1
+
+        cv2.destroyAllWindows()
+        return posCount
+                    
+    posCount = reviewPics(posCount)
     
     # write out background file
     bgFile = open('data/bg.txt','w+')
@@ -138,7 +198,6 @@ def objTrack(videoLocation):
     print("Negative Count: "+str(negCount))
     cap.release()
     cv2.destroyAllWindows()
-    
 
 
 def bgList(vidPath):
