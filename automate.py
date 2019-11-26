@@ -15,7 +15,7 @@ def main():
     video_location = ['../vids/mario1.mp4',
                       '../vids/mario3.mp4']
     #width,height = selectPosNeg(video_location)
-    objTrack(video_location)
+    width, height = objTrack(video_location)
     #trainedWidth,trainedHeight = createSamples(width,height)
     #trainCascade(trainedWidth,trainedHeight)
     #playVids(video_location)
@@ -238,6 +238,7 @@ def objTrack(videoLocation):
     print("Negative Count: "+str(negCount))
     cap.release()
     cv2.destroyAllWindows()
+    return w,h
 
 
 def bgList(vidPath):
