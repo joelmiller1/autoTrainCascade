@@ -42,7 +42,7 @@ def box2Mask(bbox):
     return mask
 
 def areaSelector(refFrame,yRatio,init):
-    selectWindow = "Select Region"
+    selectWindow = "Video"
     cv2.namedWindow(selectWindow)
     clickParams = {
             'refPt': [(0,0),(0,0)],
