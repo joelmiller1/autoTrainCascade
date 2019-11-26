@@ -3,14 +3,17 @@
 Created on Tue Nov  5 10:38:16 2019
 
 @author: Joel Miller
-"""
-import cv2,os,subprocess,shlex,shutil
+dd"""
+import cv2,os,subprocess,shlex,shutil,glob,re
 from selector import areaSelector, mask2Rect, box2Rect, mask2Box, box2Mask
 
 pathCount = lambda path: len([f for f in os.listdir(path)if os.path.isfile(os.path.join(path, f))])
 
+#TODO: add argparse for command line operation
+
 def main():
-    video_location = ['../vids/mario1.mp4']
+    video_location = ['../vids/mario1.mp4',
+                      '../vids/mario3.mp4']
     #width,height = selectPosNeg(video_location)
     objTrack(video_location)
     #trainedWidth,trainedHeight = createSamples(width,height)
@@ -32,6 +35,7 @@ def makeDirs():
 def objTrack(videoLocation):
     makeDirs()
     cap = cv2.VideoCapture(videoLocation[0])
+    vidNum = 0
     init = 1
     initScale = 1
     posCount = 0
@@ -46,6 +50,7 @@ def objTrack(videoLocation):
                 print('didnt find video')
                 break
             refFrame = frame.copy()
+            refFrame2 = frame.copy()
             key = cv2.waitKey(1) & 0xFF
     
             # Pause the Video
@@ -56,7 +61,7 @@ def objTrack(videoLocation):
                     if key2 == ord('w'):
                         if initScale:
                             yRatio = 1
-                            box = areaSelector(frame,yRatio,init)
+                            box = areaSelector(frame,yRatio,initScale)
                             ratioInit = mask2Rect(box)
                             h = ratioInit[1][1] - ratioInit[0][1]
                             w = ratioInit[1][0] - ratioInit[0][0]
@@ -66,7 +71,7 @@ def objTrack(videoLocation):
                             w = objFrame.shape[1]
                             h = objFrame.shape[0]
                         else:
-                            box = areaSelector(frame,yRatio,init)
+                            box = areaSelector(frame,yRatio,initScale)
                             objFrame = refFrame[box]
                             objFrame = cv2.resize(objFrame,(w,h))
                             
@@ -90,6 +95,18 @@ def objTrack(videoLocation):
                     if key2 == ord('s'):
                         init = 1
                         break
+                    if key2 == ord('n'):
+                        vidNum += 1
+                        if len(videoLocation) > 1 and vidNum < len(videoLocation):
+                            cap.release()
+                            cap = cv2.VideoCapture(videoLocation[vidNum])
+                            break
+                        else:
+                            if len(videoLocation) == 1:
+                                print('Only one video loaded')
+                            else:
+                                print('Last video in list')
+                            
                     if key2 == 27 or key2 == 113:
                         raise Found
 
@@ -98,7 +115,7 @@ def objTrack(videoLocation):
                 trackSuccess, box = tracker.update(frame)
                 if trackSuccess:
                     rectPts = box2Rect(box)
-                    objFrame = frame[box2Mask(box)]
+                    objFrame = refFrame2[box2Mask(box)]
                     cv2.rectangle(frame,rectPts[0],rectPts[1],(255,0,0),2,1)
                     posCount += 1
                     resizedModImg = cv2.resize(objFrame,(w,h))
@@ -108,6 +125,8 @@ def objTrack(videoLocation):
                     negCount += 1
                     cv2.imwrite(f'data/neg/neg{negCount}.jpg',refFrame)
                     negList.append(f'neg/neg{negCount}.jpg\n')
+                else:
+                    init = 1
             
             if key ==ord('s'):
                 init = 1
@@ -123,6 +142,18 @@ def objTrack(videoLocation):
                 skip = cap.get(cv2.CAP_PROP_POS_MSEC) - 3000
                 cap.set(cv2.CAP_PROP_POS_MSEC,skip)
                 success, frame = cap.read()
+                
+            if key == ord('n'):
+                vidNum += 1
+                if len(videoLocation) > 1 and vidNum <  len(videoLocation):
+                    cap.release()
+                    cap = cv2.VideoCapture(videoLocation[vidNum])
+                else:
+                    if len(videoLocation) == 1:
+                        print('Only one video loaded')
+                    else:
+                        print('Last video in list')
+                
                 
             # Quit Video Playback by pressing 'q' or ESC
             if key == 113 or key == 27:
@@ -146,7 +177,7 @@ def objTrack(videoLocation):
 
                 if key == ord('a'):
                     try:
-                        if i > 2:
+                        if i > 1:
                             i -= 1
                             frame = cv2.imread(f'data/pos/pos{i}.jpg')
                             print('image: '+str(i)+'/'+str(count))
@@ -154,34 +185,43 @@ def objTrack(videoLocation):
                         break
                 
                 if key == ord('d'):
-                    try:
-                        if i < count:
-                            i += 1
-                            frame = cv2.imread(f'data/pos/pos{i}.jpg')
-                            print('image: '+str(i)+'/'+str(count))
-                            break
-                    except:
+                    if i <= count:
+                        i += 1
+                        frame = cv2.imread(f'data/pos/pos{i}.jpg')
+                        print('image: '+str(i)+'/'+str(count))
                         break
                     
                 if key == ord('x'):
-                    os.remove(f'data/pos/pos{i}.jpg')
-                    posList.remove(f'pos/pos{posCount}.jpg  1  0 0 {w} {h}\n')
-                    posCount -= 1
-                    i += 1
-                    frame = cv2.imread(f'data/pos/pos{i}.jpg')
-                    print('image: '+str(i)+'/'+str(count))
-                
+                    if i <= count:
+                        os.remove(f'data/pos/pos{i}.jpg')
+                        posList.remove(f'pos/pos{posCount}.jpg  1  0 0 {w} {h}\n')
+                        posCount -= 1
+                        i += 1
+                        if i <= count:
+                            frame = cv2.imread(f'data/pos/pos{i}.jpg')
+                        print('image: '+str(i)+'/'+str(count))
+                        break
+
+                             
                 if key == 113 or key == 27:
                     i = count + 9000
                     break
         
-        renameList = [f for f in os.listdir('data/pos') if os.path.isfile(os.path.join('data/pos', f))] 
+        cv2.destroyAllWindows()
+        retPath = os.getcwd()
+        os.chdir('data/pos')
+        renameList = [file for file in glob.glob('*.jpg')] 
+        def posSort(name):
+            a = re.search('pos(\d+).jpg',name)
+            return int(a.groups(0)[0])
+    
+        renameList.sort(key=posSort)
+        
         renameNum = 1
         for j in renameList:
-            os.rename('data/pos/'+j,f'data/pos/pos{renameNum}.jpg')
+            os.rename(j,f'pos{renameNum}.jpg')
             renameNum += 1
-
-        cv2.destroyAllWindows()
+        os.chdir(retPath)
         return posCount
                     
     posCount = reviewPics(posCount)
@@ -322,13 +362,13 @@ def trainCascade(trainedWidth,trainedHeight):
     print('Cascade training has started, this might take awhile...')
     posCount = pathCount('data/pos')
     negCount = pathCount('data/neg')
-    tempPath = os.getcwd()
+    retPath = os.getcwd()
     os.chdir('data')
     trainCascade = f'../../opencv/opencv_traincascade.exe -data ./ -vec ./output.vec -bg ./bg.txt -numPos {posCount} -numNeg {negCount} -numStages 20 -precalcValBufSize 2048 -precalcIdxBufSize 2048 -minHitRate 0.999 -maxFalseAlarmRate 0.5 -w {trainedWidth} -h {trainedHeight}'
     program2 = subprocess.Popen(shlex.split(trainCascade),stdout=subprocess.PIPE)
     print(program2.stdout.read().decode())
     program2.wait()
-    os.chdir(tempPath)
+    os.chdir(retPath)
     print('Finished Training')
 
 def playVids(video_location):
