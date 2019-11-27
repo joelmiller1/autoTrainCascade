@@ -3,7 +3,7 @@
 Created on Tue Nov  5 10:38:16 2019
 
 @author: Joel Miller
-dd"""
+"""
 import cv2,os,subprocess,shlex,shutil,glob,re
 from selector import areaSelector, mask2Rect, box2Rect, mask2Box, box2Mask
 
