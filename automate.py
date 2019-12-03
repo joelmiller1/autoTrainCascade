@@ -10,12 +10,11 @@ from selector import areaSelector, mask2Rect, box2Rect, mask2Box, box2Mask
 pathCount = lambda path: len([f for f in os.listdir(path)if os.path.isfile(os.path.join(path, f))])
 
 def main():
-    video_location = ['../vids/mario1.mp4',
-                      '../vids/mario3.mp4']
-    selectPosNeg(video_location)
+    video_location = ['../vids/mario1.mp4']
+    width,height = selectPosNeg(video_location)
     #objTrack(video_location)
-    createSamples()
-    trainCascade()
+    trainedWidth,trainedHeight = createSamples(width,height)
+    trainCascade(trainedWidth,trainedHeight)
     playVids(video_location)
 
 def makeDirs():
@@ -90,7 +89,7 @@ def bgList(vidPath):
         os.mkdir('data/raw')
     count = pathCount('data/raw')
     # it will capture image in each 5 seconds
-    frameRate = 1
+    frameRate = 3
     
     for i in list(range(0,len(vidPath))):
         sec = 2
@@ -119,11 +118,13 @@ def selectPosNeg(video_location):
     negCount = 1
     posList = []
     negList = []
-    
+    init = 1
+    yRatio = 1
     while i <= count:
         refImg = cv2.imread(f'data/raw/img{i}.jpg')
         modImg = refImg.copy()
-        box = areaSelector(modImg)
+        box = areaSelector(modImg,yRatio,init)
+    
         if box[0] == -1:
             cv2.imwrite(f'data/neg/neg{negCount}.jpg',modImg)
             negList.append(f'neg/neg{negCount}.jpg\n')
@@ -136,18 +137,31 @@ def selectPosNeg(video_location):
         elif box[0] == -31:
             break
         else:
+            if init == 1:
+                ratioInit = mask2Rect(box)
+                h = ratioInit[1][1] - ratioInit[0][1]
+                w = ratioInit[1][0] - ratioInit[0][0]
+                yRatio = round(h/w,2)
+                init = 2
+                print('height = '+str(h))
+                print('width = '+str(w))
+            
             modImg = modImg[box]
-            cv2.imwrite(f'data/pos/pos{posCount}.jpg',modImg)
-            width = modImg.shape[1]
-            height = modImg.shape[0]
-            posList.append(f'pos/pos{posCount}.jpg  1  0 0 {width} {height}\n')
+            if init == 1:
+                cv2.imwrite(f'data/pos/pos{posCount}.jpg',modImg)
+                w = modImg.shape[1]
+                h = modImg.shape[0]
+            else:
+                resizedModImg = cv2.resize(modImg,(w,h))
+                cv2.imwrite(f'data/pos/pos{posCount}.jpg',resizedModImg)
+            posList.append(f'pos/pos{posCount}.jpg  1  0 0 {w} {h}\n')
             posCount += 1
             temp = mask2Rect(box)
             refImg = cv2.rectangle(refImg,temp[0],temp[1],(0,0,0),cv2.FILLED)
-            cv2.imwrite(f'data/neg/neg{negCount}.jpg\n',refImg)
-            negList.append('neg/neg{negCount}.jpg\n')
+            cv2.imwrite(f'data/neg/neg{negCount}.jpg',refImg)
+            negList.append(f'neg/neg{negCount}.jpg\n')
             negCount += 1
-        f'Image {i}/{count}'
+        print('Image: '+ str(i)+'/' + str(count))
         i += 1
     
     # Negative file list creation
@@ -166,23 +180,35 @@ def selectPosNeg(video_location):
     print('Number of Negative pics: '+str(negCount))
     posCount = pathCount('data/pos')
     print('Number of Positive pics: '+str(posCount))
+    return w,h
     
-def createSamples():
+def createSamples(width,height):
     print('Beginning vec file creation')
     posCount = pathCount('data/pos')
-    createSamples = f'../opencv/opencv_createsamples.exe -vec ./data/output.vec -info ./data/info.dat -bg ./data/bg.txt -num {posCount} -w 60 -h 40'
+    if width and height < 60:
+        trainedWidth = width
+        trainedWidth = height
+    elif width > height:
+        trainedWidth = 60
+        trainedHeight = int(60*(height/width))
+    elif width < height:
+        trainedHeight = 60
+        trainedWidth = int(60*(width/height))
+    
+    createSamples = f'../opencv/opencv_createsamples.exe -vec ./data/output.vec -info ./data/info.dat -bg ./data/bg.txt -num {posCount} -w {trainedWidth} -h {trainedHeight}'
     program = subprocess.Popen(shlex.split(createSamples),stdout=subprocess.PIPE)
     print(program.stdout.read().decode())
     program.wait()
     print('Vector files created')
+    return trainedWidth, trainedHeight
 
-def trainCascade():
+def trainCascade(trainedWidth,trainedHeight):
     print('Cascade training has started, this might take awhile...')
     posCount = pathCount('data/pos')
     negCount = pathCount('data/neg')
     tempPath = os.getcwd()
     os.chdir('data')
-    trainCascade = f'../../opencv/opencv_traincascade.exe -data ./ -vec ./output.vec -bg ./bg.txt -numPos {posCount} -numNeg {negCount} -numStages 20 -precalcValBufSize 2048 -precalcIdxBufSize 2048 -minHitRate 0.999 -maxFalseAlarmRate 0.5 -w 60 -h 40'
+    trainCascade = f'../../opencv/opencv_traincascade.exe -data ./ -vec ./output.vec -bg ./bg.txt -numPos {posCount} -numNeg {negCount} -numStages 20 -precalcValBufSize 2048 -precalcIdxBufSize 2048 -minHitRate 0.999 -maxFalseAlarmRate 0.5 -w {trainedWidth} -h {trainedHeight}'
     program2 = subprocess.Popen(shlex.split(trainCascade),stdout=subprocess.PIPE)
     print(program2.stdout.read().decode())
     program2.wait()
@@ -190,7 +216,7 @@ def trainCascade():
     print('Finished Training')
 
 def playVids(video_location):
-    usps_cascade = cv2.CascadeClassifier('data/cascade.xml')
+    obj_cascade = cv2.CascadeClassifier('data/cascade.xml')
     cap = cv2.VideoCapture(video_location[0])
     ret, frame = cap.read()
     
@@ -199,7 +225,7 @@ def playVids(video_location):
     
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         
-        usps = usps_cascade.detectMultiScale(gray, 1.3, 5)
+        usps = obj_cascade.detectMultiScale(gray, 1.3, 5)
         for (x,y,w,h) in usps:
             cv2.rectangle(frame,(x,y),(x+w,y+h),(0,255,255),2)
     

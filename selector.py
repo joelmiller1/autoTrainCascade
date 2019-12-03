@@ -41,10 +41,9 @@ def box2Mask(bbox):
     mask = (slice(pts[0][1],pts[1][1]),slice(pts[0][0],pts[1][0]))
     return mask
 
-def areaSelector(refFrame):
+def areaSelector(refFrame,yRatio,init):
     selectWindow = "Select Region"
     cv2.namedWindow(selectWindow)
-    
     clickParams = {
             'refPt': [(0,0),(0,0)],
             'cropping': False,
@@ -57,17 +56,18 @@ def areaSelector(refFrame):
             params['refPt'][1] = (x,y)
             params['cropping'] = True
         elif event == cv2.EVENT_LBUTTONUP:
-            params['refPt'][1] = (x,y)
             params['refPt'] = pts4Rect(params['refPt'])
             params['cropping'] = False
             params['selectFrame'] = refFrame.copy()
-            
             frame = params['selectFrame']
             pts = params['refPt']
             cv2.rectangle(frame,pts[0],pts[1],(0,255,0),2)
         elif params['cropping'] == True:
             pts = params['refPt']
-            params['refPt'][1] = (x,y)
+            constrainedY = int((x-pts[0][0])*yRatio) + pts[0][1]
+            if init == 1:
+                constrainedY = y       
+            params['refPt'][1] = (x,constrainedY)
             plotPts = pts4Rect(params['refPt'])
             frame[:] = refFrame[:]
             cv2.rectangle(frame,plotPts[0],plotPts[1],(0,255,0),2)
@@ -106,4 +106,5 @@ def areaSelector(refFrame):
     cv2.destroyWindow(selectWindow)
     return mask
         
-
+#refFrame = cv2.imread('test.jpg')
+#areaSelector(refFrame)
