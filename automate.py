@@ -344,7 +344,7 @@ def createSamples(width,height):
     posCount = pathCount('data/pos')
     if width and height < 60:
         trainedWidth = width
-        trainedWidth = height
+        trainedHeight = height
     elif width > height:
         trainedWidth = 60
         trainedHeight = int(60*(height/width))
