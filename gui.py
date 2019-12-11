@@ -4,18 +4,18 @@ Created on Wed Nov 27 10:06:53 2019
 
 @author: Joel Miller
 
-learning from this website:
-https://realpython.com/python-gui-with-wxpython/
 
 """
 
-import cv2,os,subprocess,shlex,shutil,glob,re,wx,threading
+import cv2,os,subprocess,shlex,shutil,glob,re,wx
 from selector import areaSelector, mask2Rect, box2Rect, mask2Box, box2Mask
 
 wildcard = "mp4 source (*.mp4)|*.mp4|" \
             "All files (*.*)|*.*"
 
 pathCount = lambda path: len([f for f in os.listdir(path)if os.path.isfile(os.path.join(path, f))])
+
+       
 
 class MyForm(wx.Frame):
  
@@ -25,19 +25,27 @@ class MyForm(wx.Frame):
         #wx.Frame.CenterOnScreen
         panel = wx.Panel(self, wx.ID_ANY)
         self.currentDirectory = os.getcwd()
-        
+        self.filePaths = 0
+        self.w = 0
         # Title Text
         titleText = wx.StaticText(panel,label='Location of video files to train')
         
         # create text box
-        self.textBox = wx.TextCtrl(panel,size = (200,50), style=wx.TE_MULTILINE)
+        textBox = wx.TextCtrl(panel,size = (200,50), style=wx.TE_MULTILINE)
         
         # create the buttons and bindings
-        openFileDlgBtn = wx.Button(panel, label="Select Files")
-        openFileDlgBtn.Bind(wx.EVT_BUTTON, self.onOpenFile)
+        selectFilesBtn = wx.Button(panel, label="Select Files")
+        selectFilesBtn.Bind(wx.EVT_BUTTON, self.onOpenFile)
         
-        startTrain = wx.Button(panel, label="Start Training")
-        startTrain.Bind(wx.EVT_BUTTON, self.startTraining)
+        # Button for video obj track training
+        vidTrainBtn = wx.Button(panel, label="Video Track Training")
+        vidTrainBtn.Bind(wx.EVT_BUTTON, self.startVidTraining)
+        
+        # Button for vid to pic training
+        picTrainBtn = wx.Button(panel, label="Vid2Pic Training")
+        picTrainBtn.Bind(wx.EVT_BUTTON, self.startPicTraining)
+        frameRateInfo = wx.StaticText(panel,label='Enter Frame Rate to save pictures from video:')
+        self.frameRateInput = wx.TextCtrl(panel)
         
         # Status Box
         statusText = wx.StaticText(panel,label='Status:')
@@ -47,9 +55,12 @@ class MyForm(wx.Frame):
         vSize = wx.BoxSizer(wx.VERTICAL)
         hSize = wx.BoxSizer(wx.HORIZONTAL)
         vSize.Add(titleText,0, wx.ALL|wx.CENTER)
-        vSize.Add(self.textBox,0, wx.ALL|wx.CENTER|wx.EXPAND, 5)
-        hSize.Add(openFileDlgBtn, 0, wx.ALL|wx.CENTER, 5)
-        hSize.Add(startTrain, 0, wx.ALL|wx.CENTER, 5)
+        vSize.Add(textBox,0, wx.ALL|wx.CENTER|wx.EXPAND, 5)
+        vSize.Add(selectFilesBtn, 0, wx.ALL|wx.CENTER, 5)
+        vSize.Add(vidTrainBtn, 0, wx.ALL|wx.CENTER, 5)
+        vSize.Add(picTrainBtn, 0, wx.ALL|wx.CENTER, 5)
+        hSize.Add(frameRateInfo, 0, wx.ALL|wx.CENTER, 5)
+        hSize.Add(self.frameRateInput, 0, wx.ALL|wx.CENTER, 5)
         vSize.Add(hSize)
         vSize.Add(statusText,0, wx.ALL|wx.CENTER)
         vSize.Add(self.statusBox,0, wx.ALL|wx.CENTER|wx.EXPAND, 5)
@@ -78,6 +89,13 @@ class MyForm(wx.Frame):
         negCount = 0
         posList = []
         negList = []
+        self.statusBox.AppendText('Space -- to Pause/Play video\n')
+        self.statusBox.AppendText('w -- to select object to train on\n')
+        self.statusBox.AppendText('s -- to stop obj tracking (if it starts tracking something weird)\n')
+        self.statusBox.AppendText('a -- rewind 3 seconds\n')
+        self.statusBox.AppendText('d -- fast foward 3 seconds\n')
+        self.statusBox.AppendText('n -- to move on to next video in list\n')
+        self.statusBox.AppendText('q or Esc -- to quit\n')
         
         class Found(Exception): pass
         try:
@@ -205,6 +223,10 @@ class MyForm(wx.Frame):
             self.statusBox.AppendText('Finished making Pictures. Now review positives and delete false positives\n')
             
         def reviewPics(posCount):
+            self.statusBox.AppendText('a -- to go to previous picture\n')
+            self.statusBox.AppendText('d -- to go to next picture\n')
+            self.statusBox.AppendText('x -- to delete picture from training arena\n')
+            self.statusBox.AppendText('q or Esc -- to skip review\n')
             count = posCount
             i = 1
             self.statusBox.AppendText('image: '+str(i)+'/'+str(count)+'\n')
@@ -277,8 +299,11 @@ class MyForm(wx.Frame):
         self.statusBox.AppendText("Negative Count: "+str(negCount)+'\n')
         cap.release()
         cv2.destroyAllWindows()
-        self.w = w
-        self.h = h
+        try:
+            self.w = w
+            self.h = h
+        except:
+            pass
         #return w,h
     
     
@@ -288,7 +313,11 @@ class MyForm(wx.Frame):
             os.mkdir('data/raw')
         count = pathCount('data/raw')
         # it will capture image in each 5 seconds
-        frameRate = 3
+        try:
+            frameRate = int(self.frameRateInput.GetValue())
+        except:
+            frameRate = 3
+            self.statusBox.AppendText("Error reading frame rate, defaulting to 3\n")
         
         for i in list(range(0,len(vidPath))):
             sec = 2
@@ -310,8 +339,8 @@ class MyForm(wx.Frame):
             
     def selectPosNeg(self):
         self.makeDirs()
-        video_location = self.filePaths
-        self.bgList(video_location)
+        #video_location = self.filePaths
+        self.bgList()
         count = pathCount('data/raw')
         i = 1
         posCount = 1
@@ -380,7 +409,8 @@ class MyForm(wx.Frame):
         self.statusBox.AppendText('Number of Negative pics: '+str(negCount)+'\n')
         posCount = pathCount('data/pos')
         self.statusBox.AppendText('Number of Positive pics: '+str(posCount)+'\n')
-        return w,h
+        self.w = w
+        self.h = h
         
     def createSamples(self):
         self.statusBox.AppendText('Beginning vec file creation\n')
@@ -467,11 +497,30 @@ class MyForm(wx.Frame):
                 self.textBox.AppendText(a[i]+'\n')
         dlg.Destroy()
     
-    def startTraining(self, event):
-        self.objTrack()
-        self.createSamples()
-        self.trainCascade()
-        self.playVids()
+    def startVidTraining(self, event):
+        if self.filePaths:
+            self.objTrack()
+            if self.w:
+                self.createSamples()
+                self.trainCascade()
+                self.playVids()
+            else:
+                self.statusBox.AppendText('Nothing to Train\n')
+        else:
+            self.statusBox.AppendText('No video Selected\n')
+        
+    def startPicTraining(self, event):
+        if self.filePaths:
+            self.selectPosNeg()
+            if self.w:
+                self.createSamples()
+                self.trainCascade()
+                self.playVids()
+            else:
+                self.statusBox.AppendText('Nothing to Train\n')
+        else:
+            self.statusBox.AppendText('No video Selected\n')
+        
 
 #----------------------------------------------------------------------
 # Run the program
@@ -480,3 +529,5 @@ if __name__ == "__main__":
     frame = MyForm()
     frame.Show()
     app.MainLoop()
+    
+    
