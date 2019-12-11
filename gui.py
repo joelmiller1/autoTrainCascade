@@ -31,7 +31,7 @@ class MyForm(wx.Frame):
         titleText = wx.StaticText(panel,label='Location of video files to train')
         
         # create text box
-        textBox = wx.TextCtrl(panel,size = (200,50), style=wx.TE_MULTILINE)
+        self.textBox = wx.TextCtrl(panel,size = (200,50), style=wx.TE_MULTILINE)
         
         # create the buttons and bindings
         selectFilesBtn = wx.Button(panel, label="Select Files")
@@ -55,7 +55,7 @@ class MyForm(wx.Frame):
         vSize = wx.BoxSizer(wx.VERTICAL)
         hSize = wx.BoxSizer(wx.HORIZONTAL)
         vSize.Add(titleText,0, wx.ALL|wx.CENTER)
-        vSize.Add(textBox,0, wx.ALL|wx.CENTER|wx.EXPAND, 5)
+        vSize.Add(self.textBox,0, wx.ALL|wx.CENTER|wx.EXPAND, 5)
         vSize.Add(selectFilesBtn, 0, wx.ALL|wx.CENTER, 5)
         vSize.Add(vidTrainBtn, 0, wx.ALL|wx.CENTER, 5)
         vSize.Add(picTrainBtn, 0, wx.ALL|wx.CENTER, 5)
@@ -460,7 +460,8 @@ class MyForm(wx.Frame):
         
         while(cap.isOpened()):
             success, frame = cap.read()
-        
+            if not success:
+                break
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             
             usps = obj_cascade.detectMultiScale(gray, 1.3, 5)
@@ -469,7 +470,7 @@ class MyForm(wx.Frame):
         
             if success:
                 cv2.imshow('Video',frame)
-            key = cv2.waitKey(1) & 0xFF
+            key = cv2.waitKey(50) & 0xFF
             if key == ord("q"):
                 break
         
