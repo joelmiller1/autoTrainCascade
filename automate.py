@@ -12,8 +12,8 @@ pathCount = lambda path: len([f for f in os.listdir(path)if os.path.isfile(os.pa
 #TODO: add argparse for command line operation
 
 def main():
-    video_location = ['../vids/mario1.mp4',
-                      '../vids/mario3.mp4']
+    '''video_location = ['../vids/mario1.mp4',
+                      '../vids/mario3.mp4']'''
     #width,height = selectPosNeg(video_location)
     width, height = objTrack(video_location)
     #trainedWidth,trainedHeight = createSamples(width,height)
