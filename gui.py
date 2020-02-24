@@ -8,6 +8,7 @@ Created on Wed Nov 27 10:06:53 2019
 """
 
 import cv2,os,subprocess,shlex,shutil,glob,re,wx
+from threading import Thread
 from selector import areaSelector, mask2Rect, box2Rect, mask2Box, box2Mask
 
 wildcard = "mp4 source (*.mp4)|*.mp4|" \
@@ -15,6 +16,65 @@ wildcard = "mp4 source (*.mp4)|*.mp4|" \
 
 pathCount = lambda path: len([f for f in os.listdir(path)if os.path.isfile(os.path.join(path, f))])
 
+EVT_RESULT_ID = wx.NewId()
+def EVT_RESULT(win, func):
+    """Define Result Event."""
+    win.Connect(-1, -1, EVT_RESULT_ID, func)
+
+class ResultEvent(wx.PyEvent):
+    """Simple event to carry arbitrary result data."""
+    def __init__(self, data):
+        """Init Result Event."""
+        wx.PyEvent.__init__(self)
+        self.SetEventType(EVT_RESULT_ID)
+        self.data = data
+        
+# Thread class that executes processing
+class WorkerThread(Thread):
+    """Worker Thread Class."""
+    def __init__(self, notify_window):
+        """Init Worker Thread Class."""
+        Thread.__init__(self)
+        self._notify_window = notify_window
+        # This starts the thread running on creation, but you could
+        # also make the GUI thread responsible for calling this
+        self.start()
+
+    def run(self):
+        """Run Worker Thread."""
+        # This is the code executing in the new thread. Simulation of
+        # a long process (well, 10s here) as a simple loop - you will
+        # need to structure your processing so that you periodically
+        # peek at the abort variable
+        for i in range(10):
+            time.sleep(1)
+
+        # Here's where the result would be returned (this is an
+        # example fixed result of the number 10, but it could be
+        # any Python object)
+        wx.PostEvent(self._notify_window, ResultEvent(10))
+        
+        self.statusBox.AppendText('Cascade training has started, this might take awhile...\n')
+        trainedWidth = self.trainedWidth 
+        trainedHeight = self.trainedHeight
+        posCount = pathCount('data/pos')
+        negCount = pathCount('data/neg')
+        retPath = os.getcwd()
+        os.chdir('data')
+        trainCascade = f'../../opencv/opencv_traincascade.exe -data ./ -vec ./output.vec -bg ./bg.txt -numPos {posCount} -numNeg {negCount} -numStages 20 -precalcValBufSize 2048 -precalcIdxBufSize 2048 -minHitRate 0.999 -maxFalseAlarmRate 0.5 -w {trainedWidth} -h {trainedHeight}'
+        program2 = subprocess.Popen(shlex.split(trainCascade),stdout=subprocess.PIPE)
+        self.statusBox.AppendText(program2.stdout.read().decode())
+        self.statusBox.AppendText('\n')
+        program2.wait()
+        os.chdir(retPath)
+        self.statusBox.AppendText('Finished Training\n')
+        
+        
+
+    def abort(self):
+        """abort worker thread."""
+        # Method for use by main thread to signal an abort
+        self._want_abort = 1
        
 
 class MyForm(wx.Frame):
@@ -95,7 +155,7 @@ class MyForm(wx.Frame):
         self.statusBox.AppendText('a -- rewind 3 seconds\n')
         self.statusBox.AppendText('d -- fast foward 3 seconds\n')
         self.statusBox.AppendText('n -- to move on to next video in list\n')
-        self.statusBox.AppendText('q or Esc -- to quit\n')
+        self.statusBox.AppendText('q or Esc -- to quit\n\n')
         
         class Found(Exception): pass
         try:
@@ -226,7 +286,7 @@ class MyForm(wx.Frame):
             self.statusBox.AppendText('a -- to go to previous picture\n')
             self.statusBox.AppendText('d -- to go to next picture\n')
             self.statusBox.AppendText('x -- to delete picture from training arena\n')
-            self.statusBox.AppendText('q or Esc -- to skip review\n')
+            self.statusBox.AppendText('q or Esc -- to skip review\n\n')
             count = posCount
             i = 1
             self.statusBox.AppendText('image: '+str(i)+'/'+str(count)+'\n')
@@ -504,6 +564,8 @@ class MyForm(wx.Frame):
             if self.w:
                 self.createSamples()
                 self.trainCascade()
+                #t1 = threading.Thread(target=self.trainCascade(), name='t1')
+                #t1.start()
                 self.playVids()
             else:
                 self.statusBox.AppendText('Nothing to Train\n')
