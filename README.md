@@ -14,7 +14,7 @@ Download and install/extract files from https://github.com/opencv/opencv/release
 vc-14/15 files. It downloads an exe file. Run the exe file which basically is a 7zip extracter that unzips all the files you need.
 Pretty sketchy, but yolo. The files you need to run the programs are located in the extracted_files_loc/build/x64/vc15/bin/. You really only need the files in that bin folder, so you can copy the entire contents of the folder to wherever directory you want or reference that folder's location. 
 
-These are the required libraries for python:
+The code also requires additional libraries that must be installed via pip or conda. Most of them are standard for python but here is the list of all required libraries:
 
 `import cv2,os,subprocess,shlex,shutil,glob,re,wx`
 
