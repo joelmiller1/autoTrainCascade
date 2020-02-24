@@ -21,7 +21,9 @@ __Step 3__ -
 
 The "Video Track Training" button will allow you to play the videos (w/ pause, foward, reverse skipping), and select an object that you want to train. The script will track the object you select and will train on that object. You can select an object multiple times throughout the video (or subsequent videos), but you can only do one object at a time. For example, you can not select two objects on the same frame.
 
-The "Vid2Pic Training" button will convert all the videos in your list to pictures. You will then have to go through each picture and either use that image as a negative, select an object to train as a positive, or skip the frame entirely. 
+The "Vid2Pic Training" button will convert all the videos in your list to pictures. You will then have to go through each picture and either use that image as a negative, select an object to train as a positive, or skip the frame entirely.
+
+__Step 4__ - 
 
 When the program starts the training, the gui will freeze. This is because I need to implement multi-threading on the program in order for it to run smoothly. Training time depends on many factors, but mostly on how many samples you have. 
 
