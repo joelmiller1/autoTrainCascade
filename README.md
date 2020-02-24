@@ -13,22 +13,37 @@ __Step 1__ -
 Make a new folder somewhere and rename to what you please (For this example, I will rename the folder __Train__). cd into __Train__ and clone the [autoTrainCascade](https://github.com/joelmiller1/autoTrainCascade.git) repo into the __Train__ folder. Next, download and install/extract files from https://github.com/opencv/opencv/releases/tag/3.4.8 . If you are on windows then get the vc-14/15 files. It downloads an exe file. Run the exe file which basically is a 7zip extracter that unzips all the files you need. To me that is kinda sketchy, why not have the contents as a zip (yolo i guess, please continue...)? The files you need to run the programs are located in the extracted_files_loc/build/x64/vc15/bin/. Copy the entire contents of that bin folder into a new folder called __opencv__, and place the __opencv__ folder in the __Train__ folder.  You don't need any of the other contents of the extracted files, so you can delete the other stuff if you wish.
 
 The file structure should look like this:
--Train
---autoTrainCascade
----gui.py
----selector.py
---opencv
----opencv_annotation.exe
----opencv_createsamples.exe
----opencv__ffmgeg348_64.dll
 
+```bash
+├── Train
+│   ├── autoTrainCascade
+│   │   ├── gui.py
+│   │   ├── selector.py
+│   ├── opencv
+│   │   ├── opencv_annotation.exe
+│   │   ├── opencv_createsamples.exe
+│   │   ├── opencv__ffmgeg348_64.dll
+│   │   ├── opencv_interactive-calibration.exe
+│   │   ├── opencv_traincascade.exe
+│   │   ├── opencv_version.exe
+│   │   ├── opencv_version_win32.exe
+│   │   ├── opencv_visualisation.exe
+│   │   ├── opencv_world348.dll
+│   │   ├── opencv_world348.pdb
+│   │   ├── opencv_world348d.dll
+│   │   ├── opencv_world348d.dll
+│   ├── vids
+│   │   ├── vid1.mp4
+│   │   ├── vid2.mp4
+```
+
+__Step 2__ -
 
 The code also requires additional libraries that must be installed via pip or conda. Most of them are standard for python but here is the list of all required libraries:
 
 `import cv2,os,subprocess,shlex,shutil,glob,re,wx`
 
 
-__Step 2__ - 
 Run the gui.py program. On the gui, you can click on the "Select Files" button which will open up a file browser that you can use to point to one or more video files. After the videos are selected click "open". The video file locations should appear in the top text box. 
 
 __Step 3__ - 
