@@ -15,7 +15,9 @@ vc-14/15 files. It downloads an exe file. Run the exe file which basically is a 
 Pretty sketchy, but yolo. The files you need to run the programs are located in the extracted_files_loc/build/x64/vc15/bin/. You really only need the files in that bin folder, so you can copy the entire contents of the folder to wherever directory you want or reference that folder's location. 
 
 These are the required libraries for python:
-`import cv2,os,subprocess,shlex,shutil,glob,re,wx`
+
+`import cv2,os,subprocess,shlex,shutil,glob,re,wx
+from selector import areaSelector, mask2Rect, box2Rect, mask2Box, box2Mask`
 
 __Step 2__ - 
 Run the gui.py program. On the gui, you can click on the "Select Files" button which will open up a file browser that you can use to point to one or more video files. After the videos are selected click "open". The video file locations should appear in the top text box. 
