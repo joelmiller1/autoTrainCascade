@@ -6,7 +6,7 @@ Created on Wed Nov 27 10:06:53 2019
 
 
 """
-
+#from threading import Thread
 import cv2,os,subprocess,shlex,shutil,glob,re,wx
 from selector import areaSelector, mask2Rect, box2Rect, mask2Box, box2Mask
 
@@ -21,7 +21,7 @@ class MyForm(wx.Frame):
  
     #----------------------------------------------------------------------
     def __init__(self):
-        wx.Frame.__init__(self, None, wx.ID_ANY,"Cascade Trainer",size=(400, 350))
+        wx.Frame.__init__(self, None, wx.ID_ANY,"Cascade Trainer",size=(400, 550))
         #wx.Frame.CenterOnScreen
         panel = wx.Panel(self, wx.ID_ANY)
         self.currentDirectory = os.getcwd()
@@ -49,7 +49,7 @@ class MyForm(wx.Frame):
         
         # Status Box
         statusText = wx.StaticText(panel,label='Status:')
-        self.statusBox = wx.TextCtrl(panel,size = (200,150), style=wx.TE_MULTILINE)
+        self.statusBox = wx.TextCtrl(panel,size = (200,250), style=wx.TE_MULTILINE)
 
         # put the buttons in a sizer
         vSize = wx.BoxSizer(wx.VERTICAL)
@@ -95,7 +95,7 @@ class MyForm(wx.Frame):
         self.statusBox.AppendText('a -- rewind 3 seconds\n')
         self.statusBox.AppendText('d -- fast foward 3 seconds\n')
         self.statusBox.AppendText('n -- to move on to next video in list\n')
-        self.statusBox.AppendText('q or Esc -- to quit\n')
+        self.statusBox.AppendText('q or Esc -- to quit\n\n')
         
         class Found(Exception): pass
         try:
@@ -226,7 +226,7 @@ class MyForm(wx.Frame):
             self.statusBox.AppendText('a -- to go to previous picture\n')
             self.statusBox.AppendText('d -- to go to next picture\n')
             self.statusBox.AppendText('x -- to delete picture from training arena\n')
-            self.statusBox.AppendText('q or Esc -- to skip review\n')
+            self.statusBox.AppendText('q or Esc -- to skip review\n\n')
             count = posCount
             i = 1
             self.statusBox.AppendText('image: '+str(i)+'/'+str(count)+'\n')
@@ -451,6 +451,21 @@ class MyForm(wx.Frame):
         program2.wait()
         os.chdir(retPath)
         self.statusBox.AppendText('Finished Training\n')
+        '''
+        
+        TODO: move cascade, delete temp folder
+        self.statusBox.AppendText('Cleaning Files....\n')
+        temp = self.filePaths[0]
+        temp2 = re.findall('(.*)\\\.*$',temp)
+        cascadeLoc1 =  temp2 + "\\data\\cascade.xml"
+        self.statusBox.AppendText(cascadeLoc1)
+        print(cascadeLoc1)
+        #
+        #cascadeLoc2 = os.getcwd() + "cascade.xml"
+        #os.rename(cascadeLoc1,cascadeLoc2)
+        #self.statusBox.AppendText('done.\n')
+        '''
+        
     
     def playVids(self):
         obj_cascade = cv2.CascadeClassifier('data/cascade.xml')
