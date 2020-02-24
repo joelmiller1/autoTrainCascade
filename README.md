@@ -10,9 +10,18 @@ https://docs.opencv.org/3.4/dc/d88/tutorial_traincascade.html
 
 ## Instructions
 __Step 1__ -
-Download and install/extract files from https://github.com/opencv/opencv/releases/tag/3.4.8 . If you are on windows then get the 
-vc-14/15 files. It downloads an exe file. Run the exe file which basically is a 7zip extracter that unzips all the files you need.
-Pretty sketchy, but yolo. The files you need to run the programs are located in the extracted_files_loc/build/x64/vc15/bin/. You really only need the files in that bin folder, so you can copy the entire contents of the folder to wherever directory you want or reference that folder's location. 
+Make a new folder somewhere and rename to what you please (For this example, I will rename the folder __Train__). cd into __Train__ and clone the [autoTrainCascade](https://github.com/joelmiller1/autoTrainCascade.git) repo into the __Train__ folder. Next, download and install/extract files from https://github.com/opencv/opencv/releases/tag/3.4.8 . If you are on windows then get the vc-14/15 files. It downloads an exe file. Run the exe file which basically is a 7zip extracter that unzips all the files you need. To me that is kinda sketchy, why not have the contents as a zip (yolo i guess, please continue...)? The files you need to run the programs are located in the extracted_files_loc/build/x64/vc15/bin/. Copy the entire contents of that bin folder into a new folder called __opencv__, and place the __opencv__ folder in the __Train__ folder.  You don't need any of the other contents of the extracted files, so you can delete the other stuff if you wish.
+
+The file structure should look like this:
+-Train
+--autoTrainCascade
+---gui.py
+---selector.py
+--opencv
+---opencv_annotation.exe
+---opencv_createsamples.exe
+---opencv__ffmgeg348_64.dll
+
 
 The code also requires additional libraries that must be installed via pip or conda. Most of them are standard for python but here is the list of all required libraries:
 
