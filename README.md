@@ -1,4 +1,4 @@
-# objectDetect
+# Make your own Cascade Classifier easily
 ## Motivation and Background 
 The purpose of this python project is to take most of the work out of training so you can use the standard opencv object tracking
 examples to track your own custom object. The problem with the whole training process is that it is tedious and the end result may
