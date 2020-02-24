@@ -16,8 +16,8 @@ Pretty sketchy, but yolo. The files you need to run the programs are located in 
 
 These are the required libraries for python:
 
-`import cv2,os,subprocess,shlex,shutil,glob,re,wx
-from selector import areaSelector, mask2Rect, box2Rect, mask2Box, box2Mask`
+`import cv2,os,subprocess,shlex,shutil,glob,re,wx`
+
 
 __Step 2__ - 
 Run the gui.py program. On the gui, you can click on the "Select Files" button which will open up a file browser that you can use to point to one or more video files. After the videos are selected click "open". The video file locations should appear in the top text box. 
