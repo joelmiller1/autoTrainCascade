@@ -39,7 +39,7 @@ The file structure should look like this:
 
 __Step 2__ -
 
-The code also requires additional libraries that must be installed via pip or conda. Most of them are standard for python but here is the list of all required libraries:
+The code also requires additional libraries that can be installed via pip, conda, or other. Most of them are standard for python but here is the list of all required libraries:
 
 `import cv2,os,subprocess,shlex,shutil,glob,re,wx`
 
