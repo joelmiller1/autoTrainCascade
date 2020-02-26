@@ -45,7 +45,7 @@ The code also requires additional libraries that can be installed via pip, conda
 
 Run the gui.py program. On the gui, you can click on the "Select Files" button which will open up a file browser that you can use to point to one or more video files. After the videos are selected click "open". The video file locations should appear in the top text box. 
 
-![gui](/gui.jpg)
+![gui](https://github.com/joelmiller1/autoTrainCascade/blob/master/gui.jpg)
 
 __Step 3__ - 
 
