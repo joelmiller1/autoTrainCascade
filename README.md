@@ -45,6 +45,8 @@ The code also requires additional libraries that can be installed via pip, conda
 
 Run the gui.py program. On the gui, you can click on the "Select Files" button which will open up a file browser that you can use to point to one or more video files. After the videos are selected click "open". The video file locations should appear in the top text box. 
 
+![gui](/gui.jpg)
+
 __Step 3__ - 
 
 The "Video Track Training" button will allow you to play the videos (w/ pause, foward, reverse skipping) and select an object that you want to train. In order to track/train an object, first pause the video with the object in frame and press "w". This will allow you to draw a box around the object you want to train. The very first time you draw the box is important because the script will save the aspect ratio of the box you created in order to resize/reshape future images you wish to train as well as constrain any future boxes you draw to that aspect ratio. The script will then track that object until the tracker fails. You can select an object multiple times throughout the video (or subsequent videos), but you can only do one object at a time. For example, you can not select two objects on the same frame; but it will allow you to train an object that only appears a few times throughout the video.
