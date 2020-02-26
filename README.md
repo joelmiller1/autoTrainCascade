@@ -59,5 +59,29 @@ __Step 4__ -
 
 When the program starts the training, the gui will freeze. This is because I need to implement multi-threading on the program in order for it to run smoothly. Training time depends on many factors, but mostly on how many samples you have. 
 
-After training is complete, the cascade filter will appear in a folder where the video is located. You can then use that to track on object with your new cascade classifier!
+After training is complete, the cascade filter will appear in the folder where gui.py is located. You can then use that to track on object with your new cascade classifier!
+
+```bash
+├── Train
+│   ├── autoTrainCascade
+│   │   ├── gui.py
+│   │   ├── selector.py
+│   │   ├── **cascade.xml**
+│   ├── opencv
+│   │   ├── opencv_annotation.exe
+│   │   ├── opencv_createsamples.exe
+│   │   ├── opencv__ffmgeg348_64.dll
+│   │   ├── opencv_interactive-calibration.exe
+│   │   ├── opencv_traincascade.exe
+│   │   ├── opencv_version.exe
+│   │   ├── opencv_version_win32.exe
+│   │   ├── opencv_visualisation.exe
+│   │   ├── opencv_world348.dll
+│   │   ├── opencv_world348.pdb
+│   │   ├── opencv_world348d.dll
+│   │   ├── opencv_world348d.dll
+│   ├── vids
+│   │   ├── vid1.mp4
+│   │   ├── vid2.mp4
+```
 
