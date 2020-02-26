@@ -451,24 +451,25 @@ class MyForm(wx.Frame):
         program2.wait()
         os.chdir(retPath)
         self.statusBox.AppendText('Finished Training\n')
-        '''
+      
         
-        TODO: move cascade, delete temp folder
+        #TODO: move cascade, delete temp folder
         self.statusBox.AppendText('Cleaning Files....\n')
         temp = self.filePaths[0]
         temp2 = re.findall('(.*)\\\.*$',temp)
-        cascadeLoc1 =  temp2 + "\\data\\cascade.xml"
-        self.statusBox.AppendText(cascadeLoc1)
-        print(cascadeLoc1)
-        #
-        #cascadeLoc2 = os.getcwd() + "cascade.xml"
-        #os.rename(cascadeLoc1,cascadeLoc2)
-        #self.statusBox.AppendText('done.\n')
-        '''
+        cascadeLoc1 =  temp2[0] + "\\data\\cascade.xml"
+        cascadeLoc2 = self.currentDirectory + "\\cascade.xml"
+        try:
+            os.rename(cascadeLoc1,cascadeLoc2)
+        except:
+            self.statusBox.AppendText('no cascade classifier found\n')
+        self.statusBox.AppendText('done.\n')
+
         
     
     def playVids(self):
-        obj_cascade = cv2.CascadeClassifier('data/cascade.xml')
+        cascadeLoc = self.currentDirectory + "\\cascade.xml"
+        obj_cascade = cv2.CascadeClassifier(cascadeLoc)
         video_location = self.filePaths
         cap = cv2.VideoCapture(video_location[0])
         ret, frame = cap.read()
@@ -519,7 +520,10 @@ class MyForm(wx.Frame):
             if self.w:
                 self.createSamples()
                 self.trainCascade()
-                self.playVids()
+                try:
+                    self.playVids()
+                except:
+                    self.statusBox.AppendText('No cascade classifier found\n')
             else:
                 self.statusBox.AppendText('Nothing to Train\n')
         else:
@@ -531,7 +535,10 @@ class MyForm(wx.Frame):
             if self.w:
                 self.createSamples()
                 self.trainCascade()
-                self.playVids()
+                try:
+                    self.playVids()
+                except:
+                    print("No cascade classifier found.")
             else:
                 self.statusBox.AppendText('Nothing to Train\n')
         else:
