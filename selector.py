@@ -92,12 +92,16 @@ def areaSelector(refFrame,yRatio,init):
                 break
             else:
                 break
-        elif(key == ord("b")):
+        elif(key == ord("a")):
             mask = (-9,)
             break
         
-        elif(key == ord("s")):
+        elif(key == ord("d")):
             mask = (-21,)
+            break
+        
+        elif(key == ord("s")):
+            mask = (-41,)
             break
         
         elif(key == ord("q") or cv2.getWindowImageRect(selectWindow)[0] < 0):

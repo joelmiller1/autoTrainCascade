@@ -349,21 +349,34 @@ class MyForm(wx.Frame):
         negList = []
         init = 1
         yRatio = 1
+        self.statusBox.AppendText('a -- to go to previous picture\n')
+        self.statusBox.AppendText('d -- to go to next picture\n')
+        self.statusBox.AppendText('s -- to skip picture from training arena\n')
+        self.statusBox.AppendText('q or Esc -- to skip review\n\n')
+        
         while i <= count:
+            self.statusBox.AppendText('Image: '+ str(i)+'/' + str(count)+'\n')
             refImg = cv2.imread(f'data/raw/img{i}.jpg')
             modImg = refImg.copy()
             box = areaSelector(modImg,yRatio,init)
-        
+            
             if box[0] == -1:
-                cv2.imwrite(f'data/neg/neg{negCount}.jpg',modImg)
-                negList.append(f'neg/neg{negCount}.jpg\n')
+                cv2.imwrite(f'data/neg/img{i}.jpg',modImg)
+                negList.append(f'neg/img{i}.jpg\n')
                 negCount += 1
-            elif box[0] == -9:
-                i -= 2
-            elif box[0] == -21:
+                i += 1
+            elif box[0] == -9: # previous picturew
+                if i > 1:
+                    i -= 1
+            elif box[0] == -21: # next picture
+                cv2.imwrite(f'data/neg/img{i}.jpg',modImg)
+                negList.append(f'neg/img{i}.jpg\n')
+                negCount += 1
+                i += 1
+            elif box[0] == -41: # skip picture
                 i += 1
                 continue
-            elif box[0] == -31:
+            elif box[0] == -31:  # quit
                 break
             else:
                 if init == 1:
@@ -377,21 +390,22 @@ class MyForm(wx.Frame):
                 
                 modImg = modImg[box]
                 if init == 1:
-                    cv2.imwrite(f'data/pos/pos{posCount}.jpg',modImg)
+                    cv2.imwrite(f'data/pos/img{i}.jpg',modImg)
                     w = modImg.shape[1]
                     h = modImg.shape[0]
                 else:
                     resizedModImg = cv2.resize(modImg,(w,h))
-                    cv2.imwrite(f'data/pos/pos{posCount}.jpg',resizedModImg)
-                posList.append(f'pos/pos{posCount}.jpg  1  0 0 {w} {h}\n')
+                    cv2.imwrite(f'data/pos/img{i}.jpg',resizedModImg)
+                posList.append(f'pos/img{i}.jpg  1  0 0 {w} {h}\n')
                 posCount += 1
                 temp = mask2Rect(box)
                 refImg = cv2.rectangle(refImg,temp[0],temp[1],(0,0,0),cv2.FILLED)
-                cv2.imwrite(f'data/neg/neg{negCount}.jpg',refImg)
-                negList.append(f'neg/neg{negCount}.jpg\n')
+                cv2.imwrite(f'data/neg/img{i}.jpg',refImg)
+                negList.append(f'neg/img{i}.jpg\n')
                 negCount += 1
-            self.statusBox.AppendText('Image: '+ str(i)+'/' + str(count)+'\n')
-            i += 1
+                i += 1
+            
+        
         
         # Negative file list creation
         bgFile = open('data/bg.txt','w+')
