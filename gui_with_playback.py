@@ -11,10 +11,12 @@ class finished():
 
 
 class TestThread(Thread):
-    def __init__(self):
+    def __init__(self, btn):
         """Init Worker Thread Class."""
         Thread.__init__(self)
+        self.btn = btn
         self.start()    # start the thread
+        
 
     def run(self):
         """Run Worker Thread."""
@@ -29,6 +31,7 @@ class TestThread(Thread):
     def postTime(self,i):
         # send time to gui
         print("postTime was executed, val:" + str(i))
+        self.btn.Enable()
 
 
 class TrainingTab(wx.Panel):
@@ -36,7 +39,7 @@ class TrainingTab(wx.Panel):
         wx.Panel.__init__(self, parent)
         panel = wx.Panel(self)
         
-        t = wx.StaticText(self, -1, "This is the first tab", (200,20))
+        #t = wx.StaticText(self, -1, "This is the first tab")
         
         self.btn = btn = wx.Button(panel, label="Start Thread")
         btn.Bind(wx.EVT_BUTTON, self.onButton)
@@ -47,7 +50,7 @@ class TrainingTab(wx.Panel):
     
     def onButton(self, event):
         # Run thread
-        TestThread()
+        TestThread(self.btn)
         print("Thread started!")
         btn = event.GetEventObject()
         btn.Disable()
@@ -86,7 +89,7 @@ class MainFrame(wx.Frame):
         sizer = wx.BoxSizer()
         sizer.Add(nb, 1, wx.EXPAND)
         p.SetSizer(sizer)
-
+    
 
 if __name__ == "__main__":
     app = wx.App()
