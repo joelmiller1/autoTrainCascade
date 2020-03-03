@@ -245,9 +245,12 @@ class TrainingClass():
         except:
             pass
         #return w,h
-    
-    
-    def bgList(self):
+            
+    def selectPosNeg(self):
+        self.makeDirs()
+        #video_location = self.filePaths
+        
+        '''relocating bgList'''
         vidPath = self.tcVars.filePaths
         if os.path.isdir('data/raw') == False:
             os.mkdir('data/raw')
@@ -276,11 +279,7 @@ class TrainingClass():
         vidcap.release()
         cv2.destroyAllWindows()
         self.tcVars.statusBox.AppendText("Finished making pictures\n")
-            
-    def selectPosNeg(self):
-        self.makeDirs()
-        #video_location = self.filePaths
-        self.bgList()
+        
         count = pathCount('data/raw')
         i = 1
         posCount = 1
@@ -365,10 +364,10 @@ class TrainingClass():
         self.tcVars.h = h
         
     def createSamples(self):
-        self.statusBox.AppendText('Beginning vec file creation\n')
+        self.tcVars.statusBox.AppendText('Beginning vec file creation\n')
         posCount = pathCount('data/pos')
-        width = self.w
-        height = self.h
+        width = self.tcVars.w
+        height = self.tcVars.h
         if width and height < 60:
             trainedWidth = width
             trainedHeight = height
@@ -381,12 +380,12 @@ class TrainingClass():
         
         createSamples = f'../opencv/opencv_createsamples.exe -vec ./data/output.vec -info ./data/info.dat -bg ./data/bg.txt -num {posCount} -w {trainedWidth} -h {trainedHeight}'
         program = subprocess.Popen(shlex.split(createSamples),stdout=subprocess.PIPE)
-        self.statusBox.AppendText(program.stdout.read().decode())
-        self.statusBox.AppendText('\n')
+        self.tcVars.statusBox.AppendText(program.stdout.read().decode())
+        self.tcVars.statusBox.AppendText('\n')
         program.wait()
-        self.statusBox.AppendText('Vector files created\n')
-        self.trainedWidth = trainedWidth
-        self.trainedHeight = trainedHeight
+        self.tcVars.statusBox.AppendText('Vector files created\n')
+        self.tcVars.trainedWidth = trainedWidth
+        self.tcVars.trainedHeight = trainedHeight
 
 
 class playVidClass():
@@ -394,10 +393,18 @@ class playVidClass():
         self.pvClass = pvClass
         
     def playVids(self):
-        cascadeLoc = self.pvClass.currentDirectory + "\\cascade.xml"
+        self.pvClass.statusBox.AppendText('starting to play videos.\n')
+        cascadeLoc = self.pvClass.cascadeLoc
+        print(cascadeLoc)
         obj_cascade = cv2.CascadeClassifier(cascadeLoc)
-        video_location = self.pvClass.filePaths
-        cap = cv2.VideoCapture(video_location[0])
+        video_location = self.pvClass.videoLoc
+        cap = cv2.VideoCapture(video_location)
+        
+        self.pvClass.statusBox.AppendText('Space -- to Pause/Play video\n')
+        self.pvClass.statusBox.AppendText('a -- rewind 3 seconds\n')
+        self.pvClass.statusBox.AppendText('d -- fast foward 3 seconds\n')
+        self.pvClass.statusBox.AppendText('q or Esc -- to quit\n\n')
+        
         class Found(Exception): pass
 
         try:
@@ -405,7 +412,6 @@ class playVidClass():
                 success, frame = cap.read()
                 key = cv2.waitKey(1) & 0xFF
                 if not success:
-                    print('didnt find video')
                     break
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 objCascade = obj_cascade.detectMultiScale(gray, 1.3, 5)
@@ -451,30 +457,13 @@ class playVidClass():
         cap.release()
         cv2.destroyAllWindows()
 
-class cleanUpClass():
-    def __init__(self,cuClass):
-        self.cuClass = cuClass
-        
-    def printFunction(self):
-        #print("thread finished, val1 is: " + str(self.val1))
-        self.cuClass.statusBox.AppendText('Cleaning Files....\n')
-        temp = self.filePaths[0]
-        temp2 = re.findall('(.*)\\\.*$',temp)
-        cascadeLoc1 =  temp2[0] + "\\data\\cascade.xml"
-        cascadeLoc2 = self.cuClass.currentDirectory + "\\cascade.xml"
-        try:
-            os.rename(cascadeLoc1,cascadeLoc2)
-        except:
-            self.cuClass.statusBox.AppendText('no cascade classifier found\n')
-        self.cuClass.statusBox.AppendText('done.\n')
 
 class trainCascadeThread(Thread):
-    def __init__(self, trainingTabVars,trainedWidth,trainedHeight):
+    def __init__(self, trainingTabVars,btn):
         # Initialize thread to be run
         Thread.__init__(self)
         self.trainingTabVars = trainingTabVars
-        self.trainedWidth = trainedWidth
-        self.trainedHeight =  trainedHeight
+        self.btn = btn
         self.start()    # start the thread
 
     def run(self):
@@ -492,13 +481,30 @@ class trainCascadeThread(Thread):
         self.trainingTabVars.statusBox.AppendText('\n')
         program2.wait()
         os.chdir(retPath)
-        #f = finished("john", 32)
-        #wx.CallAfter(f.printFunction,)
+        
+        # Post training cleanup
+        os.chdir(self.trainingTabVars.currentDirectory)
+        if os.path.isdir('\\cascade.xml') == True:
+            os.remove("\\cascade.xml")
+            
+        self.trainingTabVars.statusBox.AppendText('Cascade training finished.\n')
+        self.trainingTabVars.statusBox.AppendText('Cleaning Files....\n')
+        temp = self.trainingTabVars.filePaths[0]
+        temp2 = re.findall('(.*)\\\.*$',temp)
+        cascadeLoc1 =  temp2[0] + "\\data\\cascade.xml"
+        cascadeLoc2 = self.trainingTabVars.currentDirectory + "\\cascade.xml"
+        self.trainingTabVars.cascadeLoc = cascadeLoc2
+        try:
+            os.rename(cascadeLoc1,cascadeLoc2)
+        except:
+            self.trainingTabVars.statusBox.AppendText('no cascade classifier found\n')
+        self.trainingTabVars.statusBox.AppendText('done.\n')
+        self.btn.Enable()
+        playVideo = playVidClass(self.trainingTabVars)
+        playVideo.playVids()
     
     def postTime(self,i):
-        # send time to gui
-        print("Training finished")
-        self.trainingTabVars.btn.Enable()
+        self.trainingTabVars.statusBox.AppendText('here?\n')
 
 
 class TrainingTab(wx.Panel):
@@ -506,20 +512,17 @@ class TrainingTab(wx.Panel):
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
         vSize = wx.BoxSizer(wx.VERTICAL)
         self.currentDirectory = os.getcwd()
-
+        
         # create Title and file viewer       
         titleText = wx.StaticText(self,wx.ID_ANY,label='Location of video files to train')
         self.textBox = wx.TextCtrl(self,wx.ID_ANY,size = (200,50), style=wx.TE_MULTILINE)
-        
-        '''self.btn = btn = wx.Button(self,wx.ID_ANY, label="Start Thread")
-        btn.Bind(wx.EVT_BUTTON, self.onButton)'''
         
         # create the buttons and bindings
         selectFilesBtn = wx.Button(self,wx.ID_ANY, label="Select Files")
         selectFilesBtn.Bind(wx.EVT_BUTTON, self.onOpenFile)
         
         # Button for video obj track training
-        vidTrainBtn = wx.Button(self,wx.ID_ANY, label="Video Track Training")
+        vidTrainBtn = wx.Button(self,wx.ID_ANY, label="Video Obj Track Training")
         vidTrainBtn.Bind(wx.EVT_BUTTON, self.startVidTraining)
         
         # Button for vid to pic training
@@ -537,7 +540,6 @@ class TrainingTab(wx.Panel):
         vSize.Add(titleText,0, wx.ALL|wx.CENTER)
         vSize.Add(self.textBox,0, wx.ALL|wx.CENTER|wx.EXPAND, 5)
         vSize.Add(selectFilesBtn, 0, wx.ALL|wx.CENTER, 5)
-        #vSize.Add(btn, 0, wx.ALL|wx.CENTER, 5)
         vSize.Add(vidTrainBtn, 0, wx.ALL|wx.CENTER, 5)
         vSize.Add(picTrainBtn, 0, wx.ALL|wx.CENTER, 5)
         hSize.Add(frameRateInfo, 0, wx.ALL|wx.CENTER, 5)
@@ -546,16 +548,6 @@ class TrainingTab(wx.Panel):
         vSize.Add(statusText,0, wx.ALL|wx.CENTER)
         vSize.Add(self.statusBox,0, wx.ALL|wx.CENTER|wx.EXPAND, 5)
         self.SetSizer(vSize)
-        
-    
-    '''def onButton(self, event):
-        # Run thread
-        trainCascadeThread(self)
-        print("Thread started!")
-        btn = event.GetEventObject()
-        btn.Disable()'''
-        
-    
         
     def onOpenFile(self, event):
         # create and run dialog box
@@ -574,6 +566,7 @@ class TrainingTab(wx.Panel):
             self.textBox.Clear()
             for i in list(range(0,len(self.filePaths))):
                 self.textBox.AppendText(a[i]+'\n')
+            self.videoLoc = a[0]
         dlg.Destroy()
         
     def startVidTraining(self, event):
@@ -584,29 +577,111 @@ class TrainingTab(wx.Panel):
         if self.filePaths:
             vidTrainClass.objTrack()
             if self.w:
-                createSamplesClass(self)
-                trainCascadeThread(self,vidTrainClass.trainedWidth,vidTrainClass.trainedHeight)
-                cleanUpClass(self)
-                btn.Enable()
-                try:
-                    playVidClass(self)
-                except:
-                    self.statusBox.AppendText('No cascade classifier found\n')
+                vidTrainClass.createSamples()
+                trainCascadeThread(self,btn)
+            else:
+                self.statusBox.AppendText('Nothing to Train\n')
+        else:
+            self.statusBox.AppendText('No video Selected\n')
+        
+    def startPicTraining(self, event):
+        btn = event.GetEventObject()
+        btn.Disable()
+        vidTrainClass = TrainingClass(self)
+        if self.filePaths:
+            vidTrainClass.selectPosNeg()
+            if self.w:
+                vidTrainClass.createSamples()
+                trainCascadeThread(self,btn)
             else:
                 self.statusBox.AppendText('Nothing to Train\n')
         else:
             self.statusBox.AppendText('No video Selected\n')
 
 
-        
-    def startPicTraining(self, event):
-        print("here")
-
-
 class PlaybackTab(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
-        t = wx.StaticText(self, -1, "This is the second tab", (20,20))
+        
+        vSize = wx.BoxSizer(wx.VERTICAL)
+        self.currentDirectory = os.getcwd()
+        
+        # create Title and file viewer       
+        titleText = wx.StaticText(self,wx.ID_ANY,label='Location of Cascade Filter')
+        self.cascadeTextBox = wx.TextCtrl(self,wx.ID_ANY)
+        
+        # create the buttons and bindings
+        selectFilesBtn = wx.Button(self,wx.ID_ANY, label="Load Cascade")
+        selectFilesBtn.Bind(wx.EVT_BUTTON, self.loadCascade)
+        
+        
+        # Button for video obj track training
+        titleText2 = wx.StaticText(self,wx.ID_ANY,label='Location of video to play and detect')
+        self.videoTextBox = wx.TextCtrl(self,wx.ID_ANY)
+        selectVideoBtn = wx.Button(self,wx.ID_ANY, label="Select Video")
+        selectVideoBtn.Bind(wx.EVT_BUTTON, self.selectVideo)
+        
+        # Play video with obj detection 
+        playVideoBtn = wx.Button(self,wx.ID_ANY, label="Play Video")
+        playVideoBtn.Bind(wx.EVT_BUTTON, self.playVideo)
+        
+        # Status Box
+        statusText = wx.StaticText(self,wx.ID_ANY,label='Status:')
+        self.statusBox = wx.TextCtrl(self,wx.ID_ANY,size = (200,250), style=wx.TE_MULTILINE)
+        
+        vSize = wx.BoxSizer(wx.VERTICAL)
+        vSize.Add(titleText,0, wx.ALL|wx.CENTER)
+        vSize.Add(self.cascadeTextBox,0, wx.ALL|wx.CENTER|wx.EXPAND, 5)
+        vSize.Add(selectFilesBtn, 0, wx.ALL|wx.CENTER, 5)
+        vSize.Add(titleText2,0, wx.ALL|wx.CENTER)
+        vSize.Add(self.videoTextBox,0, wx.ALL|wx.CENTER|wx.EXPAND, 5)
+        vSize.Add(selectVideoBtn, 0, wx.ALL|wx.CENTER, 5)
+        vSize.Add(playVideoBtn, 0, wx.ALL|wx.CENTER, 5)
+        vSize.Add(statusText,0, wx.ALL|wx.CENTER)
+        vSize.Add(self.statusBox,0, wx.ALL|wx.CENTER|wx.EXPAND, 5)
+        self.SetSizer(vSize)
+        
+    def loadCascade(self, event):
+        # create and run dialog box
+        wildcard = "xml source (*.xml)|*.xml|" \
+            "All files (*.*)|*.*"
+        dlg = wx.FileDialog(
+            self, message="Select a xml cascade filter",
+            defaultDir=self.currentDirectory, 
+            defaultFile="",
+            wildcard=wildcard,
+            style=wx.FD_OPEN | wx.FD_MULTIPLE | wx.FD_CHANGE_DIR
+            )
+        if dlg.ShowModal() == wx.ID_OK:
+            self.cascadePath = dlg.GetPaths()
+            a = dlg.GetPaths()
+            self.cascadeTextBox.Clear()
+            self.cascadeTextBox.AppendText(a[0])
+            self.cascadeLoc = a[0]
+        dlg.Destroy()
+        
+    def selectVideo(self, event):
+        # create and run dialog box
+        wildcard = "xml source (*.mp4)|*.mp4|" \
+            "All files (*.*)|*.*"
+        dlg = wx.FileDialog(
+            self, message="Select a video to play",
+            defaultDir=self.currentDirectory, 
+            defaultFile="",
+            wildcard=wildcard,
+            style=wx.FD_OPEN | wx.FD_MULTIPLE | wx.FD_CHANGE_DIR
+            )
+        if dlg.ShowModal() == wx.ID_OK:
+            self.videoPath = dlg.GetPaths()
+            a = dlg.GetPaths()
+            self.videoTextBox.Clear()
+            self.videoTextBox.AppendText(a[0])
+            self.videoLoc = a[0]
+        dlg.Destroy()
+    
+    def playVideo(self,event):
+        playVideo = playVidClass(self)
+        playVideo.playVids()
 
 class TrackingTab(wx.Panel):
     def __init__(self, parent):
