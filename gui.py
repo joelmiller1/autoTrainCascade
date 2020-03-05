@@ -691,7 +691,105 @@ class PlaybackTab(wx.Panel):
 class TrackingTab(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
-        t = wx.StaticText(self, -1, "This is the third tab", (20,20))
+        vSize = wx.BoxSizer(wx.VERTICAL)
+        self.currentDirectory = os.getcwd()
+        
+        # create the Radio Box
+        panel = wx.Panel(self,wx.VERTICAL)
+        self.rBoxList = ['Video','Webcam','IP']
+        self.radioBox1 = wx.RadioBox(panel,label="Video Source",choices=self.rBoxList,majorDimension=1, style=wx.RA_SPECIFY_ROWS)
+        self.radioBox1.Bind(wx.EVT_RADIOBOX,self.onRadioBox)
+        # source label and text
+        self.sourceLabel = wx.StaticText(self,wx.ID_ANY,label="Video Location: ")
+        self.sourceText = wx.TextCtrl(self,wx.ID_ANY)
+        self.selectVideoBtn = wx.Button(self,wx.ID_ANY,label="Select Video")
+        self.selectVideoBtn.Bind(wx.EVT_BUTTON, self.onSelectVideoBtn)
+
+        
+        # Load Cascade Filter
+        loadCascadeBtn = wx.Button(self,wx.ID_ANY,label="Load Cascade Filter")
+        loadCascadeBtn.Bind(wx.EVT_BUTTON,self.onLoadCascadeBtn)
+        
+        # Start Tracking Button 
+        startBtn = wx.Button(self,wx.ID_ANY, label="Start Tracking")
+        startBtn.Bind(wx.EVT_BUTTON, self.onStartBtn)
+        
+        # Status Box
+        statusText = wx.StaticText(self,wx.ID_ANY,label='Status:')
+        self.statusBox = wx.TextCtrl(self,wx.ID_ANY,size = (200,250), style=wx.TE_MULTILINE)
+        
+        # Add Cascade Selection Sizers
+        vSize = wx.BoxSizer(wx.VERTICAL)
+        vSize.Add(panel, 0, wx.ALL|wx.CENTER,5)
+        hSize = wx.BoxSizer(wx.HORIZONTAL)
+        hSize.Add(self.sourceLabel,wx.CENTER,5)
+        hSize.Add(self.sourceText,wx.CENTER,5)
+        hSize.Add(self.selectVideoBtn)
+        vSize.Add(hSize,0,wx.ALL|wx.CENTER|wx.EXPAND,5)
+        vSize.Add(loadCascadeBtn, 0, wx.ALL|wx.CENTER,5)
+        vSize.Add(startBtn, 0, wx.ALL|wx.CENTER, 5)
+        vSize.Add(statusText,0, wx.ALL|wx.CENTER,5)
+        vSize.Add(self.statusBox,0, wx.ALL|wx.CENTER|wx.EXPAND, 5)
+        self.SetSizer(vSize)
+        
+    def onSelectVideoBtn(self,event):
+        # create and run dialog box
+        wildcard = "mp4 source (*.mp4)|*.mp4|" \
+            "All files (*.*)|*.*"
+        dlg = wx.FileDialog(
+            self, message="Select a video file",
+            defaultDir=self.currentDirectory, 
+            defaultFile="",
+            wildcard=wildcard,
+            style=wx.FD_OPEN | wx.FD_MULTIPLE | wx.FD_CHANGE_DIR
+            )
+        if dlg.ShowModal() == wx.ID_OK:
+            self.cascadePath = dlg.GetPaths()
+            a = dlg.GetPaths()
+            self.sourceText.Clear()
+            self.sourceText.AppendText(a[0])
+            self.videoLoc = a[0]
+        dlg.Destroy()
+    
+    def onLoadCascadeBtn(self, event):
+        # create and run dialog box
+        wildcard = "xml source (*.xml)|*.xml|" \
+            "All files (*.*)|*.*"
+        dlg = wx.FileDialog(
+            self, message="Select a xml cascade filter",
+            defaultDir=self.currentDirectory, 
+            defaultFile="",
+            wildcard=wildcard,
+            style=wx.FD_OPEN | wx.FD_MULTIPLE | wx.FD_CHANGE_DIR
+            )
+        if dlg.ShowModal() == wx.ID_OK:
+            self.cascadePath = dlg.GetPaths()
+            a = dlg.GetPaths()
+            self.sourceText.Clear()
+            self.sourceText.AppendText(a[0])
+            self.cascadeLoc = a[0]
+        dlg.Destroy()
+        
+    def onRadioBox(self,event):
+        self.statusBox.AppendText(self.radioBox1.GetStringSelection() + '\n')
+        if(self.radioBox1.GetStringSelection() == 'Video'):
+            self.sourceLabel.SetLabel('Video Location: ')
+            self.selectVideoBtn.Enable()
+            self.sourceText.Enable()
+            self.sourceText.Clear()
+        elif(self.radioBox1.GetStringSelection() == 'Webcam'):
+            self.sourceLabel.SetLabel('(default is 0)')
+            self.sourceText.Disable()
+            self.selectVideoBtn.Disable()
+            self.sourceText.Clear()
+        else:
+            self.sourceLabel.SetLabel('IP Address: ')
+            self.selectVideoBtn.Disable()
+            self.sourceText.Enable()
+            self.sourceText.Clear()
+        
+    def onStartBtn(self,event):
+        self.statusBox.AppendText('start button pressed\n')
 
 
 class MainFrame(wx.Frame):
