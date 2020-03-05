@@ -518,7 +518,7 @@ class TrainingTab(wx.Panel):
         self.textBox = wx.TextCtrl(self,wx.ID_ANY,size = (200,50), style=wx.TE_MULTILINE)
         
         # create the buttons and bindings
-        selectFilesBtn = wx.Button(self,wx.ID_ANY, label="Select Files")
+        selectFilesBtn = wx.Button(self,wx.ID_ANY, label="Select Video")
         selectFilesBtn.Bind(wx.EVT_BUTTON, self.onOpenFile)
         
         # Button for video obj track training
@@ -602,21 +602,15 @@ class TrainingTab(wx.Panel):
 class PlaybackTab(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
-        
         vSize = wx.BoxSizer(wx.VERTICAL)
         self.currentDirectory = os.getcwd()
         
-        # create Title and file viewer       
-        titleText = wx.StaticText(self,wx.ID_ANY,label='Location of Cascade Filter')
-        self.cascadeTextBox = wx.TextCtrl(self,wx.ID_ANY)
-        
         # create the buttons and bindings
-        selectFilesBtn = wx.Button(self,wx.ID_ANY, label="Load Cascade")
-        selectFilesBtn.Bind(wx.EVT_BUTTON, self.loadCascade)
-        
+        self.cascadeTextBox = wx.TextCtrl(self,wx.ID_ANY)
+        loadCascadeBtn = wx.Button(self,wx.ID_ANY, label="Load Cascade")
+        loadCascadeBtn.Bind(wx.EVT_BUTTON, self.loadCascade)
         
         # Button for video obj track training
-        titleText2 = wx.StaticText(self,wx.ID_ANY,label='Location of video to play and detect')
         self.videoTextBox = wx.TextCtrl(self,wx.ID_ANY)
         selectVideoBtn = wx.Button(self,wx.ID_ANY, label="Select Video")
         selectVideoBtn.Bind(wx.EVT_BUTTON, self.selectVideo)
@@ -629,15 +623,26 @@ class PlaybackTab(wx.Panel):
         statusText = wx.StaticText(self,wx.ID_ANY,label='Status:')
         self.statusBox = wx.TextCtrl(self,wx.ID_ANY,size = (200,250), style=wx.TE_MULTILINE)
         
+        # Add Cascade Selection Sizers
         vSize = wx.BoxSizer(wx.VERTICAL)
-        vSize.Add(titleText,0, wx.ALL|wx.CENTER)
-        vSize.Add(self.cascadeTextBox,0, wx.ALL|wx.CENTER|wx.EXPAND, 5)
-        vSize.Add(selectFilesBtn, 0, wx.ALL|wx.CENTER, 5)
-        vSize.Add(titleText2,0, wx.ALL|wx.CENTER)
-        vSize.Add(self.videoTextBox,0, wx.ALL|wx.CENTER|wx.EXPAND, 5)
-        vSize.Add(selectVideoBtn, 0, wx.ALL|wx.CENTER, 5)
-        vSize.Add(playVideoBtn, 0, wx.ALL|wx.CENTER, 5)
-        vSize.Add(statusText,0, wx.ALL|wx.CENTER)
+        cascadeBox = wx.StaticBox(self,-1,"Load Cascade Filter:")
+        cascadeSizer = wx.StaticBoxSizer(cascadeBox,wx.HORIZONTAL)
+        cascadeSizer.Add(self.cascadeTextBox,0, wx.ALL|wx.CENTER|wx.EXPAND, 3)
+        cascadeSizer.Add(loadCascadeBtn, 0, wx.ALL|wx.CENTER, 3)
+        vSize.Add(cascadeSizer)
+        
+        # Add Video Selection Sizers
+        videoBox = wx.StaticBox(self,-1,"Load Video to Play:")
+        videoSizer = wx.StaticBoxSizer(videoBox,wx.HORIZONTAL)
+        videoSizer.Add(self.videoTextBox,0, wx.ALL|wx.CENTER|wx.EXPAND, 3)
+        videoSizer.Add(selectVideoBtn, 0, wx.ALL|wx.CENTER, 3)
+        vSize.Add(videoSizer)
+        
+        # Play button Sizer
+        vSize.Add(playVideoBtn, 0, wx.ALL|wx.CENTER, 15)
+        
+        # Status Box Sizer
+        vSize.Add(statusText,0, wx.ALL|wx.CENTER,5)
         vSize.Add(self.statusBox,0, wx.ALL|wx.CENTER|wx.EXPAND, 5)
         self.SetSizer(vSize)
         
