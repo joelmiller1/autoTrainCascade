@@ -700,11 +700,12 @@ class TrackingTab(wx.Panel):
         self.radioBox1 = wx.RadioBox(panel,label="Video Source",choices=self.rBoxList,majorDimension=1, style=wx.RA_SPECIFY_ROWS)
         self.radioBox1.Bind(wx.EVT_RADIOBOX,self.onRadioBox)
         # source label and text
+        
+        panel2 = wx.Panel(self,wx.HORIZONTAL)
         self.sourceLabel = wx.StaticText(self,wx.ID_ANY,label="Video Location: ")
         self.sourceText = wx.TextCtrl(self,wx.ID_ANY)
         self.selectVideoBtn = wx.Button(self,wx.ID_ANY,label="Select Video")
         self.selectVideoBtn.Bind(wx.EVT_BUTTON, self.onSelectVideoBtn)
-
         
         # Load Cascade Filter
         loadCascadeBtn = wx.Button(self,wx.ID_ANY,label="Load Cascade Filter")
