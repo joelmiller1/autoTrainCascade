@@ -1,5 +1,6 @@
-import cv2,os,subprocess,shlex,shutil,glob,re,wx
+import cv2,os,subprocess,shlex,shutil,glob,re,wx,collections,math
 from threading import Thread
+import numpy as np
 from selector import areaSelector, mask2Rect, box2Rect, mask2Box, box2Mask
 
 pathCount = lambda path: len([f for f in os.listdir(path)if os.path.isfile(os.path.join(path, f))])
@@ -388,6 +389,64 @@ class TrainingClass():
         self.tcVars.trainedHeight = trainedHeight
 
 
+class objectDetectorClass():
+    def __init__(self,myClass):
+        self.myClass = myClass
+        
+    def objectDetector(self):
+        object_cascade = cv2.CascadeClassifier(self.myClass.cascadeLoc)
+        cap = cv2.VideoCapture(self.myClass.vidLoc)
+        success,frame = cap.read()
+        
+        # This will change how much of the trace persistance there is
+        bufSize = 40
+        xBuf = collections.deque([frame.shape[1]//2]*bufSize,maxlen=bufSize)
+        yBuf = collections.deque([frame.shape[0]//2]*bufSize,maxlen=bufSize)
+        [xBuf.append(boresightPixelLoc[0]) for i in range(bufSize)]
+        [yBuf.append(boresightPixelLoc[1]) for i in range(bufSize)]
+        
+        while success:
+            success, frame = cap.read()
+            if not success:
+                break
+            frame = frame[mask]
+            refFrame = frame.copy()
+            gray = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
+            dish = object_cascade.detectMultiScale(gray)
+            for (x,y,w,h) in dish:
+                xBuf.append(x-60)
+                yBuf.append(y)
+                
+                pixelError = round(math.sqrt((boresightPixelLoc[0] - xBuf[-1])**2 + (boresightPixelLoc[1] - yBuf[-1])**2))
+                angleError = round(degrees2pixels*pixelError,2)
+                cv2.putText(frame,'Angle error:' + str(angleError), (int(frame.shape[1]//(3/2)),20),cv2.FONT_HERSHEY_DUPLEX,0.5,(0,255,0),1)
+
+                a = np.vstack((list(xBuf),list(yBuf))).astype(np.int32).T
+                for i in list(range(bufSize-2,0,-1)):
+                    cv2.line(refFrame,(xBuf[i],yBuf[i]),(xBuf[i+1],yBuf[i+1]),(0,0,255),4,4)
+                    alpha = i/bufSize
+                    cv2.addWeighted(refFrame,alpha,frame,1-alpha,0,frame)
+            
+            if type(dish) is not np.ndarray:
+                cv2.putText(frame,'object not detected',(5,10),cv2.FONT_HERSHEY_DUPLEX,0.4,(0,0,255),1)
+            
+            key = cv2.waitKey(60) & 0xFF
+            if key == 32:
+                while True:
+                    key2 = cv2.waitKey(1) & 0xFF
+                    #vidTime = int(round(cap.get(cv2.CAP_PROP_POS_MSEC)/1000,0))
+                    cv2.putText(refFrame,'angle error: ' + str(angleError),(int(frame.shape[1]//(3/2)),20),cv2.FONT_HERSHEY_DUPLEX,0.5,(0,255,0),1)
+                    cv2.imshow('object tracking', frame)
+                    if key2 == 32:
+                        break
+            if success: cv2.imshow('object tracking', frame)
+            
+            if key == ord('q') or key == 27:
+                break
+            
+        cap.release()
+        cv2.destroyAllWindows()
+
 class playVidClass():
     def __init__(self,pvClass):
         self.pvClass = pvClass
@@ -695,20 +754,22 @@ class TrackingTab(wx.Panel):
         self.currentDirectory = os.getcwd()
         
         # create the Radio Box
-        panel = wx.Panel(self,wx.VERTICAL)
+        radioBtnPanel = wx.Panel(self,wx.VERTICAL)
         self.rBoxList = ['Video','Webcam','IP']
-        self.radioBox1 = wx.RadioBox(panel,label="Video Source",choices=self.rBoxList,majorDimension=1, style=wx.RA_SPECIFY_ROWS)
+        self.radioBox1 = wx.RadioBox(radioBtnPanel,label="Video Source",choices=self.rBoxList,majorDimension=1, style=wx.RA_SPECIFY_ROWS)
         self.radioBox1.Bind(wx.EVT_RADIOBOX,self.onRadioBox)
-        # source label and text
         
-        panel2 = wx.Panel(self,wx.HORIZONTAL)
-        self.sourceLabel = wx.StaticText(self,wx.ID_ANY,label="Video Location: ")
-        self.sourceText = wx.TextCtrl(self,wx.ID_ANY)
+        # Video Location
+        self.vidSourceText = wx.TextCtrl(self,wx.ID_ANY)
         self.selectVideoBtn = wx.Button(self,wx.ID_ANY,label="Select Video")
         self.selectVideoBtn.Bind(wx.EVT_BUTTON, self.onSelectVideoBtn)
         
+        # IP Address Location
+        self.ipSourceText = wx.TextCtrl(self,wx.ID_ANY)
+           
         # Load Cascade Filter
-        loadCascadeBtn = wx.Button(self,wx.ID_ANY,label="Load Cascade Filter")
+        self.cascadeSourceText = wx.TextCtrl(self,wx.ID_ANY)
+        loadCascadeBtn = wx.Button(self,wx.ID_ANY,label="Select Cascade")
         loadCascadeBtn.Bind(wx.EVT_BUTTON,self.onLoadCascadeBtn)
         
         # Start Tracking Button 
@@ -719,19 +780,36 @@ class TrackingTab(wx.Panel):
         statusText = wx.StaticText(self,wx.ID_ANY,label='Status:')
         self.statusBox = wx.TextCtrl(self,wx.ID_ANY,size = (200,250), style=wx.TE_MULTILINE)
         
-        # Add Cascade Selection Sizers
+        # Video Source Sizers
         vSize = wx.BoxSizer(wx.VERTICAL)
-        vSize.Add(panel, 0, wx.ALL|wx.CENTER,5)
-        hSize = wx.BoxSizer(wx.HORIZONTAL)
-        hSize.Add(self.sourceLabel,wx.CENTER,5)
-        hSize.Add(self.sourceText,wx.CENTER,5)
-        hSize.Add(self.selectVideoBtn)
-        vSize.Add(hSize,0,wx.ALL|wx.CENTER|wx.EXPAND,5)
-        vSize.Add(loadCascadeBtn, 0, wx.ALL|wx.CENTER,5)
-        vSize.Add(startBtn, 0, wx.ALL|wx.CENTER, 5)
+        vSize.Add(radioBtnPanel)
+        
+        # Video Location Sizers
+        videoBox = wx.StaticBox(self,-1,"Load Video: ")
+        self.videoSizer = wx.StaticBoxSizer(videoBox,wx.HORIZONTAL)
+        self.videoSizer.Add(self.vidSourceText,0, wx.ALL|wx.CENTER|wx.EXPAND, 3)
+        self.videoSizer.Add(self.selectVideoBtn,0, wx.ALL|wx.CENTER|wx.EXPAND, 3)
+        vSize.Add(self.videoSizer)
+        
+        # IP Sizer
+        videoBox = wx.StaticBox(self,-1,"Enter IP address: ")
+        self.ipSizer = wx.StaticBoxSizer(videoBox,wx.HORIZONTAL)
+        self.ipSizer.Add(self.ipSourceText,0, wx.ALL|wx.CENTER|wx.EXPAND, 3)
+        vSize.Add(self.ipSizer)
+        
+        # Load Cascade sizers
+        cascadeBox = wx.StaticBox(self,-1,"Load Cascade: ")
+        cascadeSizer = wx.StaticBoxSizer(cascadeBox,wx.HORIZONTAL)
+        cascadeSizer.Add(self.cascadeSourceText,0, wx.ALL|wx.CENTER|wx.EXPAND, 3)
+        cascadeSizer.Add(loadCascadeBtn,0, wx.ALL|wx.CENTER|wx.EXPAND, 3)
+        vSize.Add(cascadeSizer)
+        
+        # Start and Status Sizers
+        vSize.Add(startBtn, 0, wx.ALL|wx.CENTER, 15)
         vSize.Add(statusText,0, wx.ALL|wx.CENTER,5)
-        vSize.Add(self.statusBox,0, wx.ALL|wx.CENTER|wx.EXPAND, 5)
+        vSize.Add(self.statusBox,0, wx.ALL|wx.CENTER|wx.EXPAND, 3)
         self.SetSizer(vSize)
+        self.ipSourceText.Disable()
         
     def onSelectVideoBtn(self,event):
         # create and run dialog box
@@ -747,8 +825,8 @@ class TrackingTab(wx.Panel):
         if dlg.ShowModal() == wx.ID_OK:
             self.cascadePath = dlg.GetPaths()
             a = dlg.GetPaths()
-            self.sourceText.Clear()
-            self.sourceText.AppendText(a[0])
+            self.vidSourceText.Clear()
+            self.vidSourceText.AppendText(a[0])
             self.videoLoc = a[0]
         dlg.Destroy()
     
@@ -766,31 +844,32 @@ class TrackingTab(wx.Panel):
         if dlg.ShowModal() == wx.ID_OK:
             self.cascadePath = dlg.GetPaths()
             a = dlg.GetPaths()
-            self.sourceText.Clear()
-            self.sourceText.AppendText(a[0])
+            self.cascadeSourceText.Clear()
+            self.cascadeSourceText.AppendText(a[0])
             self.cascadeLoc = a[0]
         dlg.Destroy()
         
     def onRadioBox(self,event):
-        self.statusBox.AppendText(self.radioBox1.GetStringSelection() + '\n')
         if(self.radioBox1.GetStringSelection() == 'Video'):
-            self.sourceLabel.SetLabel('Video Location: ')
             self.selectVideoBtn.Enable()
-            self.sourceText.Enable()
-            self.sourceText.Clear()
+            self.vidSourceText.Enable()
+            self.ipSourceText.Disable()
+            
         elif(self.radioBox1.GetStringSelection() == 'Webcam'):
-            self.sourceLabel.SetLabel('(default is 0)')
-            self.sourceText.Disable()
             self.selectVideoBtn.Disable()
-            self.sourceText.Clear()
+            self.vidSourceText.Disable()
+            self.statusBox.AppendText('Default Webcam location will be used (0)\n\n')
+
         else:
-            self.sourceLabel.SetLabel('IP Address: ')
+            self.ipSourceText.Enable()
             self.selectVideoBtn.Disable()
-            self.sourceText.Enable()
-            self.sourceText.Clear()
+            self.vidSourceText.Disable()
+            self.statusBox.AppendText('RTSP or HTTP used. Examples:\nrtsp://192.168.0.0/1\nhttp://192.168.226.101:8080/video?x.mjpeg\n\n')
         
     def onStartBtn(self,event):
         self.statusBox.AppendText('start button pressed\n')
+        ObjectDetector = objectDetectorClass(self)
+        ObjectDetector.objectDetector()        
 
 
 class MainFrame(wx.Frame):
